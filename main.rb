@@ -136,6 +136,11 @@ queue.poll do |message|
       test_solution_files = Dir["./alloy_solutions_*.xml"]
       model_solution_files = Dir["./model/alloy_solutions_*.xml"]
 
+      if test_solution_files.count != model_solution_files.count
+        puts "Wrong number of solutions generated."
+        correct = false
+      end
+      
       hash_to_model_solution = {}
       model_solution_files.each do |model_file|
         hash = sha2_hash(model_file)
