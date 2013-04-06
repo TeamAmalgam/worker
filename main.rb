@@ -9,6 +9,18 @@ require 'benchmark'
 require 'json'
 require 'httparty'
 
+def sha2_hash(filename)
+  digest = Digest::SHA2.new
+  
+  File.open(filename) do |file|
+    while not file.eof
+      digest << file.read(digest.block_length)
+    end
+  end
+
+  digest.to_s
+end
+
 options = {}
 OptionParser.new do |opts|
 
@@ -119,6 +131,36 @@ queue.poll do |message|
      
       return_value = $?.to_i
 
+      # Determine if the solutions match the model solutions.
+      correct = true
+      test_solution_files = Dir["./alloy_solutions_*.xml"]
+      model_solution_files = Dir["./model/alloy_solutions_*.xml"]
+
+      hash_to_model_solution = {}
+      model_solution_files.each do |model_file|
+        hash = sha2_hash(model_file)
+        hash_to_model_solution[hash] ||= []
+        hash_to_model_solution[hash] << model_file
+      end
+
+      test_solution_files.each do |test_file|
+        hash = sha2_hash(test_file)
+        if !hash_to_model_solution[hash].nil? &&
+           !hash_to_model_solution[hash].empty?
+          matching_file = hash_to_model_solution[hash].shift
+          puts "#{test_file} matches #{matching_file}."
+        else
+          puts "#{test_file} has no match."
+          correct = false
+        end
+      end
+
+      if correct
+        puts "The solutions are correct."
+      else
+        puts "The solutions are incorrect."
+      end
+
       # Tarball the entire directory
       `tar -czf "tarball.tar.gz" ./*`
 
@@ -134,7 +176,7 @@ queue.poll do |message|
           :test_id => job_description[:test_id],
           :secret_key => message.id,
           :return_code => return_value,
-          :correct => 1,
+          :correct => correct ? 1 : 0,
           :started_at => started_at,
           :runtime_seconds => benchmark_result.real,
           :tarball_s3_key => key
