@@ -15,7 +15,7 @@ class Runner
     @thread = Thread.new do
       catch(:termination) do
         while !@termination_requested
-          @sqs_queue.poll(:idle_timeout => 30) do |message|
+          @sqs_queue.poll(:idle_timeout => 2 * 60) do |message|
             begin
               process_message(message)
             rescue Exception => e
