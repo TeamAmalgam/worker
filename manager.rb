@@ -43,7 +43,7 @@ class Manager
     @thread = Thread.new {
       register
       
-      @worker.run
+      @worker.run(@worker_id)
       catch(:terminate) do 
         while true
           16.times do 
@@ -108,7 +108,7 @@ private
 
   def heartbeat(current_test_result_id)
     HTTParty.post(heartbeat_url, {
-      :body => { :test_result_id => current_test_result_id }.to_json,
+      :body => { :test_id => current_test_result_id }.to_json,
       :basic_auth => @http_auth
     })
   end
