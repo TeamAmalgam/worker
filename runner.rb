@@ -8,7 +8,7 @@ class Runner
     @http_auth = http_auth
     @termination_requested = false
     @current_test_result_id = nil
-    @temp_root
+    @temp_root = temp_root
   end
 
   def run(worker_id)
