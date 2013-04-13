@@ -21,7 +21,7 @@ class Manager
 
     @http_auth = nil
     
-    unless http_username || http_password
+    if http_username || http_password
       @http_auth = {
         :username => http_username,
         :password => http_password
