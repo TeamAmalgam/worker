@@ -122,10 +122,10 @@ private
       `#{@command} "#{model_directory}/model.als" > stdout.out 2> stderr.out`
     end
 
-    return_value = $?.to_i
+    return_code = $?.to_i
 
     # Determine if the solutions match the model solutions
-    correct = true
+    correct = (return_code == 0)
     test_solution_files = Dir[File.join(temporary_directory, "alloy_solutions_*.xml")]
     model_solution_files = Dir[File.join(model_directory, "alloy_solutions_*.xml")]
 
@@ -161,7 +161,7 @@ private
 
     return {
       :correct => correct,
-      :return_value => return_value,
+      :return_code => return_code,
       :benchmark_result => benchmark_result
     }
   end
