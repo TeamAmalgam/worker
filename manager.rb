@@ -107,10 +107,15 @@ private
   end
 
   def heartbeat(current_test_result_id)
-    HTTParty.post(heartbeat_url, {
-      :body => { :test_id => current_test_result_id }.to_json,
-      :basic_auth => @http_auth
-    })
+    begin
+      HTTParty.post(heartbeat_url, {
+        :body => { :test_id => current_test_result_id }.to_json,
+        :basic_auth => @http_auth
+      })
+    rescue Exception => e
+      puts "Manager failed to heartbeat:"
+      puts e.inspect
+    end
   end
 
   def hostname
