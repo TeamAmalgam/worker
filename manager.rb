@@ -40,6 +40,7 @@ class Manager
   end
 
   def run
+    puts "Running with PID: #{Process.pid}"
     @thread = Thread.new {
       register
       
