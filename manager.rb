@@ -3,7 +3,10 @@ require 'socket'
 class Manager
 
   def initialize (
-    command,
+    run_command,
+    convert_command,
+    compile_command,
+    classpath,
     s3_bucket_name, 
     sqs_queue_name,
     server_base_url,
@@ -28,7 +31,10 @@ class Manager
       }
     end
 
-    @worker = Runner.new(command,
+    @worker = Runner.new(run_command,
+                         convert_command,
+                         compile_command,
+                         classpath,
                          @s3_bucket,
                          @sqs_queue,
                          @server_base_url,

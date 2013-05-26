@@ -73,7 +73,10 @@ raise "Must provide AWS credentials." if options[:access_key_id].nil? || options
 AWS.config(:access_key_id => options[:access_key_id],
            :secret_access_key => options[:secret_access_key])
 
-manager = Manager.new(options[:command],
+manager = Manager.new(options[:run_command] || options[:command],
+                      options[:convert_command],
+                      options[:compile_command],
+                      options[:classpath],
                       options[:s3_bucket],
                       options[:sqs_queue_name],
                       options[:server_base_url],

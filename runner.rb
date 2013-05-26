@@ -1,7 +1,10 @@
 class Runner
- 
-  def initialize (command, s3_bucket, sqs_queue, server_base_url, http_auth, temp_root)
-    @command = command
+
+  def initialize (run_command, convert_command, compile_command, classpath, s3_bucket, sqs_queue, server_base_url, http_auth, temp_root)
+    @run_command = run_command
+    @convert_command = convert_command
+    @compile_command = compile_command
+    @classpath = [classpath].flatten
     @s3_bucket = s3_bucket
     @sqs_queue = sqs_queue
     @server_base_url = server_base_url
@@ -21,6 +24,7 @@ class Runner
               process_message(message)
             rescue Exception => e
               puts e.inspect
+              puts e.backtrace.join("\n")
               raise e
             end
 
@@ -52,7 +56,7 @@ class Runner
   end
 
 private
-  
+
   def process_message(message)
     puts "Received Job:"
     job_description = YAML.load(message.body)
@@ -76,26 +80,29 @@ private
         # and we don't want another worker to pick it up.
         message.delete
 
+        convert_model(temp_dir)
+        compile_model(temp_dir)
+
         results = run_moolloy(temp_dir)
         tarball_s3_key = upload_results(temp_dir, message.id)
       end
     end
-    
+
     post_results(job_description[:test_id],
                  message.id,
                  started_at,
                  results,
-                 tarball_s3_key) 
+                 tarball_s3_key)
 
     puts "Finished processing job: #{message.id}."
     @current_test_result_id = nil
   end
 
   def download_model(temporary_directory, s3_key)
-    obj = @s3_bucket.objects[s3_key] 
+    obj = @s3_bucket.objects[s3_key]
     model_directory = File.join(temporary_directory, "model")
 
-    Dir.mkdir(model_directory) 
+    Dir.mkdir(model_directory)
     Dir.chdir(model_directory) do
       # Download the model
       puts "Downloading the model"
@@ -114,20 +121,52 @@ private
     end
   end
 
+  def convert_model(temporary_directory)
+    model_directory = File.join(temporary_directory, "model")
+
+    Dir.chdir(model_directory) do
+      # Download the model
+      puts "Converting the model"
+
+      `#{@convert_command} model.als`
+      `mv model.java Test.java`
+    end
+  end
+
+  def compile_model(temporary_directory)
+    model_directory = File.join(temporary_directory, "model")
+
+    Dir.chdir(model_directory) do
+      puts "Compiling the model"
+      classpath = @classpath.join(":")
+      puts "Running \"#{@compile_command} -cp \"#{classpath}\" Test.java\""
+      `#{@compile_command} -cp \"#{classpath}" Test.java`
+    end
+  end
+
   def run_moolloy(temporary_directory)
     model_directory = File.join(temporary_directory, "model")
 
     puts "Running moolloy."
+
+    classpath = @classpath + ["#{model_directory}"]
+    classpath = classpath.join(":")
+
+    puts "Running \"#{@run_command} -cp \"#{classpath}\" Test > stdout.out 2> stderr.out"
     benchmark_result = Benchmark.measure do
-      `#{@command} "#{model_directory}/model.als" > stdout.out 2> stderr.out`
+      `#{@run_command} -cp "#{classpath}" Test > stdout.out 2> stderr.out`
     end
 
     return_code = $?.to_i
 
+    # Trim off the stats section of the kodkod solutions
+    Dir[File.join(temporary_directory, "kodkod_solutions_*.txt")].each do |f|
+      `head --lines=-6 #{f} > #{File.basename(f, File.extname(f))}.trimmed.txt`
+    end
     # Determine if the solutions match the model solutions
     correct = (return_code == 0)
-    test_solution_files = Dir[File.join(temporary_directory, "alloy_solutions_*.xml")]
-    model_solution_files = Dir[File.join(model_directory, "alloy_solutions_*.xml")]
+    test_solution_files = Dir[File.join(temporary_directory, "kodkod_solutions_*.trimmed.txt")]
+    model_solution_files = Dir[File.join(model_directory, "kodkod_solutions_*.trimmed.txt")]
 
     if test_solution_files.count != model_solution_files.count
       puts "Wrong number of solutions generated."
