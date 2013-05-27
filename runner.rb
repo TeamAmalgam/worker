@@ -76,6 +76,7 @@ private
         # and we don't want another worker to pick it up.
         message.delete
 
+        compile_moolloy(temp_dir, job_description[:commit])
         results = run_moolloy(temp_dir)
         tarball_s3_key = upload_results(temp_dir, message.id)
       end
@@ -114,12 +115,37 @@ private
     end
   end
 
+  def compile_moolloy(temporary_directory, commit)
+    puts "Cloning repo."
+    `git clone #{@repo_path} moolloy`
+
+    puts "Checking out commit #{commit}"
+    Dir.chdir(File.join(temporary_directory, "moolloy")) do
+      `git checkout #{commit}`
+      `git submodule init`
+      `git submodule update`
+    end
+
+    puts "Building moolloy"
+    `ant deps`
+    `ant configure`
+    `ant alloy`
+
+    puts "Acquiring jar file"
+    dist_path = File.join(temporary_directory,
+                          "moolloy",
+                          "alloy",
+                          "dist",
+                          "alloy-dev.jar")
+    `mv #{dist_path} #{File.join(temporary_directory, "moolloy.jar")}`
+  end
+
   def run_moolloy(temporary_directory)
     model_directory = File.join(temporary_directory, "model")
 
     puts "Running moolloy."
     benchmark_result = Benchmark.measure do
-      `#{@command} "#{model_directory}/model.als" > stdout.out 2> stderr.out`
+      `#{@command} -jar moolloy.jar "#{model_directory}/model.als" > stdout.out 2> stderr.out`
     end
 
     return_code = $?.to_i
