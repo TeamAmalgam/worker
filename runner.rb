@@ -1,5 +1,5 @@
 class Runner
- 
+
   def initialize (command, s3_bucket, sqs_queue, server_base_url, http_auth, temp_root, git_repo, ssh_key)
     @command = command
     @s3_bucket = s3_bucket
@@ -54,7 +54,7 @@ class Runner
   end
 
 private
-  
+
   def process_message(message)
     puts "Received Job:"
     job_description = YAML.load(message.body)
@@ -83,22 +83,22 @@ private
         tarball_s3_key = upload_results(temp_dir, message.id)
       end
     end
-    
+
     post_results(job_description[:test_id],
                  message.id,
                  started_at,
                  results,
-                 tarball_s3_key) 
+                 tarball_s3_key)
 
     puts "Finished processing job: #{message.id}."
     @current_test_result_id = nil
   end
 
   def download_model(temporary_directory, s3_key)
-    obj = @s3_bucket.objects[s3_key] 
+    obj = @s3_bucket.objects[s3_key]
     model_directory = File.join(temporary_directory, "model")
 
-    Dir.mkdir(model_directory) 
+    Dir.mkdir(model_directory)
     Dir.chdir(model_directory) do
       # Download the model
       puts "Downloading the model"
@@ -198,9 +198,22 @@ private
   end
 
   def upload_results(temporary_directory, message_id)
+    package_directory = File.join(temporary_directory, "package")
+    stdout_path = File.join(temporary_directory, "stdout.out")
+    stderr_path = File.join(temporary_directory, "stderr.out")
+    model_path = File.join(temporary_directory, "model")
+    alloy_solutions_path = File.join(temporary_directory, "alloy_solutions_*.xml")
+    `mkdir #{package_directory}`
+    `mv #{stdout_path} #{package_directory}`
+    `mv #{stderr_path} #{package_directory}`
+    `mv #{model_path} #{package_directory}`
+    `mv #{alloy_solutions_path} #{package_directory}`
+
     # Tarball the entire temporary directory
     tarball_path = File.join(temporary_directory, "tarball.tar.gz")
-    `tar -czf "#{tarball_path}" ./*`
+    Dir.chdir(package_directory) do
+      `tar -czf "#{tarball_path}" #{File.join(".", "*")}`
+    end
 
     # Upload the tarball to s3
     key = "results/" + message_id + ".tar.gz"
