@@ -1,6 +1,6 @@
 class Runner
  
-  def initialize (command, s3_bucket, sqs_queue, server_base_url, http_auth, temp_root)
+  def initialize (command, s3_bucket, sqs_queue, server_base_url, http_auth, temp_root, git_repo, ssh_key)
     @command = command
     @s3_bucket = s3_bucket
     @sqs_queue = sqs_queue
@@ -9,6 +9,8 @@ class Runner
     @termination_requested = false
     @current_test_result_id = nil
     @temp_root = temp_root
+    @repo_url = git_repo
+    @ssh_key = ssh_key
   end
 
   def run(worker_id)
@@ -117,24 +119,27 @@ private
 
   def compile_moolloy(temporary_directory, commit)
     puts "Cloning repo."
-    `git clone #{@repo_path} moolloy`
+    puts "ssh-agent bash -c 'ssh-add #{@ssh_key}; git clone #{@repo_url} moolloy'"
+    `ssh-agent bash -c 'ssh-add #{@ssh_key}; git clone #{@repo_url} moolloy'`
 
-    puts "Checking out commit #{commit}"
     Dir.chdir(File.join(temporary_directory, "moolloy")) do
+      puts "Checking out commit #{commit}"
       `git checkout #{commit}`
       `git submodule init`
-      `git submodule update`
+
+      puts "ssh-agent bash -c 'ssh-add #{@ssh_key}; git submodule update'"
+      `ssh-agent bash -c 'ssh-add #{@ssh_key}; git submodule update'`
+
+      puts "Building moolloy"
+      `ant deps`
+      `ant configure`
+      `ant dist`
     end
 
-    puts "Building moolloy"
-    `ant deps`
-    `ant configure`
-    `ant alloy`
 
     puts "Acquiring jar file"
     dist_path = File.join(temporary_directory,
                           "moolloy",
-                          "alloy",
                           "dist",
                           "alloy-dev.jar")
     `mv #{dist_path} #{File.join(temporary_directory, "moolloy.jar")}`
@@ -145,7 +150,7 @@ private
 
     puts "Running moolloy."
     benchmark_result = Benchmark.measure do
-      `#{@command} -jar moolloy.jar "#{model_directory}/model.als" > stdout.out 2> stderr.out`
+      `#{@command} -jar #{File.join(temporary_directory, "moolloy.jar")} "#{model_directory}/model.als" > stdout.out 2> stderr.out`
     end
 
     return_code = $?.to_i
