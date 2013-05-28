@@ -9,7 +9,9 @@ class Manager
     server_base_url,
     http_username,
     http_password,
-    temp_root
+    temp_root,
+    git_repo,
+    ssh_key
   )
     @s3_client = AWS::S3.new
     @s3_bucket = @s3_client.buckets[s3_bucket_name]
@@ -33,7 +35,9 @@ class Manager
                          @sqs_queue,
                          @server_base_url,
                          @http_auth,
-                         temp_root)
+                         temp_root,
+                         git_repo,
+                         ssh_key)
 
     @mutex = Mutex.new
     @cv = ConditionVariable.new
