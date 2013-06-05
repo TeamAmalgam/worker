@@ -6,4 +6,6 @@ def sha2_hash(filename)
       digest << file.read(digest.block_length)
     end
   end
+
+  digest.digest
 end
