@@ -96,6 +96,7 @@ private
 
   def download_model(temporary_directory, s3_key)
     obj = @s3_bucket.objects[s3_key]
+    tarball_filename = File.basename(s3_key)
     model_directory = File.join(temporary_directory, "model")
 
     Dir.mkdir(model_directory)
@@ -103,7 +104,7 @@ private
       # Download the model
       puts "Downloading the model"
 
-      tarball_path = File.join(model_directory, "model.tar.gz")
+      tarball_path = File.join(model_directory, tarball_filename)
       File.open(tarball_path, "w") do |f|
         obj.read do |chunk|
           f.write(chunk)
@@ -112,7 +113,7 @@ private
 
       # Unpack the model
       puts "Unpacking the model"
-      `tar -xzf #{tarball_path}`
+      `tar -xf #{tarball_path}`
       raise "Failed to extract" unless $?.to_i == 0
     end
   end
@@ -210,13 +211,13 @@ private
     `mv #{alloy_solutions_path} #{package_directory}`
 
     # Tarball the entire temporary directory
-    tarball_path = File.join(temporary_directory, "tarball.tar.gz")
+    tarball_path = File.join(temporary_directory, "tarball.tar.bz2")
     Dir.chdir(package_directory) do
-      `tar -czf "#{tarball_path}" #{File.join(".", "*")}`
+      `tar -cjf "#{tarball_path}" #{File.join(".", "*")}`
     end
 
     # Upload the tarball to s3
-    key = "results/" + message_id + ".tar.gz"
+    key = "results/" + message_id + ".tar.bz2"
     @s3_bucket.objects[key].write(:file => tarball_path)
 
     return key
