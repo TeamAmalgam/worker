@@ -168,13 +168,15 @@ private
 
     hash_to_model_solution = {}
     model_solution_files.each do |model_file|
-      hash = sha2_hash(model_file)
+      `tail -n +2 #{model_file} > #{model_file}.trimmed`
+      hash = sha2_hash(model_file + ".trimmed")
       hash_to_model_solution[hash] ||= []
       hash_to_model_solution[hash] << model_file
     end
 
     test_solution_files.each do |test_file|
-      hash = sha2_hash(test_file)
+      `tail -n +2 #{test_file} > #{test_file}.trimmed`
+      hash = sha2_hash(test_file + ".trimmed")
       if !hash_to_model_solution[hash].nil? &&
          !hash_to_model_solution[hash].empty?
         matching_file = hash_to_model_solution[hash].shift
