@@ -122,16 +122,22 @@ private
   def compile_moolloy(temporary_directory, commit)
     puts "Cloning repo."
 
+    # If we have a seed repo then we will copy it into place and pull
+    # instead of cloning.
     if @seed_repo_path
+      # We use --reflink=auto to reduce disk usage, it performs a shallow copy
+      # with copy-on-write
       puts "cp --reflink=auto -r #{@seed_repo_path} ./moolloy"
       `cp --reflink=auto -r #{@seed_repo_path} ./moolloy`
     else
+      # Clone the repo using the ssh key specified.
       puts "ssh-agent bash -c 'ssh-add #{@ssh_key}; git clone #{@repo_url} moolloy'"
       `ssh-agent bash -c 'ssh-add #{@ssh_key}; git clone #{@repo_url} moolloy'`
     end
 
     Dir.chdir(File.join(temporary_directory, "moolloy")) do
       if @seed_repo_path
+        # If we copied a seed we need to pull it to get the latest commits.
         puts "ssh-agent bash -c 'ssh-add #{@ssh_key}; git pull" 
         `ssh-agent bash -c 'ssh-add #{@ssh_key}; git pull'`
       end
