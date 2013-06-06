@@ -1,6 +1,6 @@
 class Runner
 
-  def initialize (command, s3_bucket, sqs_queue, server_base_url, http_auth, temp_root, git_repo, ssh_key)
+  def initialize (command, s3_bucket, sqs_queue, server_base_url, http_auth, temp_root, git_repo, ssh_key, seed_repo_path)
     @command = command
     @s3_bucket = s3_bucket
     @sqs_queue = sqs_queue
@@ -11,6 +11,7 @@ class Runner
     @temp_root = temp_root
     @repo_url = git_repo
     @ssh_key = ssh_key
+    @seed_repo_path = seed_repo_path
   end
 
   def run(worker_id)
@@ -120,17 +121,42 @@ private
 
   def compile_moolloy(temporary_directory, commit)
     puts "Cloning repo."
-    puts "ssh-agent bash -c 'ssh-add #{@ssh_key}; git clone #{@repo_url} moolloy'"
-    `ssh-agent bash -c 'ssh-add #{@ssh_key}; git clone #{@repo_url} moolloy'`
+
+    # If we have a seed repo then we will copy it into place and pull
+    # instead of cloning. This saves us bandwidth since the alloy repo is quite
+    # large. By using a seed repo we only need to pull the latest commits.
+    if @seed_repo_path
+      # We use --reflink=auto to reduce disk usage, it performs a shallow copy
+      # with copy-on-write if the operating system supports it. Otherwise, it
+      # will perform a regular copy.
+      puts "cp --reflink=auto -r #{@seed_repo_path} ./moolloy"
+      `cp --reflink=auto -r #{@seed_repo_path} ./moolloy`
+    else
+      # Clone the repo using the ssh key specified in the configuration.
+      # We accomplish this by spawning a new ssh agent for the command and
+      # loading the key into it.
+      puts "ssh-agent bash -c 'ssh-add #{@ssh_key}; git clone #{@repo_url} moolloy'"
+      `ssh-agent bash -c 'ssh-add #{@ssh_key}; git clone #{@repo_url} moolloy'`
+    end
 
     Dir.chdir(File.join(temporary_directory, "moolloy")) do
+      if @seed_repo_path
+        # If we copied a seed we need to pull it to get the latest commits.
+        # Once again we use the key specified in the configuration.
+        puts "ssh-agent bash -c 'ssh-add #{@ssh_key}; git pull" 
+        `ssh-agent bash -c 'ssh-add #{@ssh_key}; git pull'`
+      end
+
+      # Checkout the specific commit referenced by the job.
       puts "Checking out commit #{commit}"
       `git checkout #{commit}`
       `git submodule init`
 
+      # Update the submodules using the ssh key given by the configuration.
       puts "ssh-agent bash -c 'ssh-add #{@ssh_key}; git submodule update'"
       `ssh-agent bash -c 'ssh-add #{@ssh_key}; git submodule update'`
 
+      # Build Moolloy
       puts "Building moolloy"
       `ant deps`
       `ant configure`
