@@ -81,7 +81,8 @@ manager = Manager.new(options[:command],
                       options[:password],
                       options[:tmp_dir],
                       options[:git_repo],
-                      options[:ssh_key])
+                      options[:ssh_key],
+                      options[:seed_repo_path])
 
 manager.run
 

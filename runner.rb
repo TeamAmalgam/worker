@@ -1,6 +1,6 @@
 class Runner
 
-  def initialize (command, s3_bucket, sqs_queue, server_base_url, http_auth, temp_root, git_repo, ssh_key)
+  def initialize (command, s3_bucket, sqs_queue, server_base_url, http_auth, temp_root, git_repo, ssh_key, seed_repo_path)
     @command = command
     @s3_bucket = s3_bucket
     @sqs_queue = sqs_queue
@@ -11,6 +11,7 @@ class Runner
     @temp_root = temp_root
     @repo_url = git_repo
     @ssh_key = ssh_key
+    @seed_repo_path = seed_repo_path
   end
 
   def run(worker_id)
@@ -120,10 +121,21 @@ private
 
   def compile_moolloy(temporary_directory, commit)
     puts "Cloning repo."
-    puts "ssh-agent bash -c 'ssh-add #{@ssh_key}; git clone #{@repo_url} moolloy'"
-    `ssh-agent bash -c 'ssh-add #{@ssh_key}; git clone #{@repo_url} moolloy'`
+
+    if @seed_repo_path
+      puts "cp --reflink=auto -r #{@seed_repo_path} ./moolloy"
+      `cp --reflink=auto -r #{@seed_repo_path} ./moolloy`
+    else
+      puts "ssh-agent bash -c 'ssh-add #{@ssh_key}; git clone #{@repo_url} moolloy'"
+      `ssh-agent bash -c 'ssh-add #{@ssh_key}; git clone #{@repo_url} moolloy'`
+    end
 
     Dir.chdir(File.join(temporary_directory, "moolloy")) do
+      if @seed_repo_path
+        puts "ssh-agent bash -c 'ssh-add #{@ssh_key}; git pull" 
+        `ssh-agent bash -c 'ssh-add #{@ssh_key}; git pull'`
+      end
+
       puts "Checking out commit #{commit}"
       `git checkout #{commit}`
       `git submodule init`
