@@ -3,18 +3,7 @@ require 'socket'
 class Manager
 
   def initialize(configuration)
-    @server_base_url = configuration.server_base_url
-
-    @http_auth = nil
-   
-    auth_settings = configuration.read_multiple([:username, :password])
-
-    if auth_settings[:username] || auth_settings[:password] 
-      @http_auth = {
-        :username => auth_settings[:username],
-        :password => auth_settings[:password]
-      }
-    end
+    @configuration = configuration
 
     @worker = Runner.new(configuration)
   end
@@ -79,28 +68,31 @@ class Manager
 
 private
 
+  #TODO: Need to grab register_url and auth params atomically
   def register
     puts "Registering with #{register_url}"
     response = HTTParty.post(register_url, {
       :body => { :hostname => hostname }.to_json,
-      :basic_auth => @http_auth
+      :basic_auth => http_auth_params
     })
 
     parsed_response = JSON.parse(response.parsed_response)
     @worker_id = parsed_response["worker_id"].to_i
   end
 
+  #TODO: Need to grab unregister_rul and auth params atomically
   def unregister
     HTTParty.post(unregister_url, {
-      :basic_auth => @http_auth
+      :basic_auth => http_auth_params
     })
   end
 
+  #TODO: Need to grab heartbeat_url and auth params atomically
   def heartbeat(current_test_result_id)
     begin
       HTTParty.post(heartbeat_url, {
         :body => { :test_id => current_test_result_id }.to_json,
-        :basic_auth => @http_auth
+        :basic_auth => http_auth_params
       })
     rescue Exception => e
       puts "Manager failed to heartbeat:"
@@ -112,16 +104,25 @@ private
     Socket.gethostname
   end
 
+  def http_auth_params
+    auth_params = @configuration.read_multiple([:username, :password])
+    if auth_params[:username] || auth_params[:password]
+      return auth_params
+    else
+      return nil
+    end
+  end
+
   def register_url
-    "#{@server_base_url}/workers/register"
+    "#{@configuration.server_base_url}/workers/register"
   end
 
   def unregister_url
-    "#{@server_base_url}/workers/#{@worker_id}/unregister"
+    "#{@configuration.server_base_url}/workers/#{@worker_id}/unregister"
   end
 
   def heartbeat_url
-    "#{@server_base_url}/workers/#{@worker_id}/heartbeat"
+    "#{@configuration.server_base_url}/workers/#{@worker_id}/heartbeat"
   end
 
 end
