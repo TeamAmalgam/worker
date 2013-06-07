@@ -31,6 +31,7 @@ class Manager
             if @configuration_update_requested
               @configuration.update
               @configuration_update_requested = false
+              puts "Configuration updated"
             end
 
             if @worker.terminated?
