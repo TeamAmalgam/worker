@@ -131,12 +131,14 @@ private
       # will perform a regular copy.
       puts "cp --reflink=auto -r #{@seed_repo_path} ./moolloy"
       `cp --reflink=auto -r #{@seed_repo_path} ./moolloy`
+      raise "Failed to copy seed repo." unless $?.to_i == 0
     else
       # Clone the repo using the ssh key specified in the configuration.
       # We accomplish this by spawning a new ssh agent for the command and
       # loading the key into it.
       puts "ssh-agent bash -c 'ssh-add #{@ssh_key}; git clone #{@repo_url} moolloy'"
       `ssh-agent bash -c 'ssh-add #{@ssh_key}; git clone #{@repo_url} moolloy'`
+      raise "Failed to clone git repo." unless $?.to_i == 0
     end
 
     Dir.chdir(File.join(temporary_directory, "moolloy")) do
@@ -145,22 +147,29 @@ private
         # Once again we use the key specified in the configuration.
         puts "ssh-agent bash -c 'ssh-add #{@ssh_key}; git pull" 
         `ssh-agent bash -c 'ssh-add #{@ssh_key}; git pull'`
+        raise "Failed to pull git repo." unless $?.to_i == 0
       end
 
       # Checkout the specific commit referenced by the job.
       puts "Checking out commit #{commit}"
       `git checkout #{commit}`
+      raise "Commit checkout failed." unless $?.to_i == 0
       `git submodule init`
+      raise "Submodule init failed." unless $?.to_i == 0
 
       # Update the submodules using the ssh key given by the configuration.
       puts "ssh-agent bash -c 'ssh-add #{@ssh_key}; git submodule update'"
       `ssh-agent bash -c 'ssh-add #{@ssh_key}; git submodule update'`
+      raise "Submodule update failed." unless $?.to_i == 0
 
       # Build Moolloy
       puts "Building moolloy"
       `ant deps`
+      raise "Failed to download dependencies." unless $?.to_i == 0
       `ant configure`
+      raise "Failed to configure build." unless $?.to_i == 0
       `ant dist`
+      raise "Failed to build." unless $?.to_i == 0
     end
 
 
@@ -170,6 +179,7 @@ private
                           "dist",
                           "alloy-dev.jar")
     `mv #{dist_path} #{File.join(temporary_directory, "moolloy.jar")}`
+    raise "Failed to acquire jar." unless $?.to_i == 0
   end
 
   def run_moolloy(temporary_directory)
@@ -195,6 +205,7 @@ private
     hash_to_model_solution = {}
     model_solution_files.each do |model_file|
       `tail -n +2 #{model_file} > #{model_file}.trimmed`
+      raise "Failed to trim model solution #{model_file}." unless $?.to_i == 0
       hash = sha2_hash(model_file + ".trimmed")
       hash_to_model_solution[hash] ||= []
       hash_to_model_solution[hash] << model_file
@@ -202,6 +213,7 @@ private
 
     test_solution_files.each do |test_file|
       `tail -n +2 #{test_file} > #{test_file}.trimmed`
+      raise "Failed to trim test solution #{model_file}." unless $?.to_i == 0
       hash = sha2_hash(test_file + ".trimmed")
       if !hash_to_model_solution[hash].nil? &&
          !hash_to_model_solution[hash].empty?
@@ -233,15 +245,21 @@ private
     model_path = File.join(temporary_directory, "model")
     alloy_solutions_path = File.join(temporary_directory, "alloy_solutions_*.xml")
     `mkdir #{package_directory}`
+    raise "Failed to create package directory." unless $?.to_i == 0
     `mv #{stdout_path} #{package_directory}`
+    raise "Failed to move stdout into package." unless $?.to_i == 0
     `mv #{stderr_path} #{package_directory}`
+    raise "Failed to move stderr into package." unless $?.to_i == 0
     `mv #{model_path} #{package_directory}`
+    raise "Failed to move model directory into package." unless $?.to_i == 0
     `mv #{alloy_solutions_path} #{package_directory}`
+    raise "Failed to move solutions into package." unless $?.to_i == 0
 
     # Tarball the entire temporary directory
     tarball_path = File.join(temporary_directory, "tarball.tar.bz2")
     Dir.chdir(package_directory) do
       `tar -cjf "#{tarball_path}" #{File.join(".", "*")}`
+      raise "Failed to create package archive." unless $?.to_i == 0
     end
 
     # Upload the tarball to s3

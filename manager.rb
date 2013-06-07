@@ -40,9 +40,6 @@ class Manager
                          git_repo,
                          ssh_key,
                          seed_repo_path)
-
-    @mutex = Mutex.new
-    @cv = ConditionVariable.new
   end
 
   def run
