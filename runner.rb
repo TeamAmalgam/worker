@@ -1,17 +1,31 @@
 class Runner
 
-  def initialize (command, s3_bucket, sqs_queue, server_base_url, http_auth, temp_root, git_repo, ssh_key, seed_repo_path)
-    @command = command
-    @s3_bucket = s3_bucket
-    @sqs_queue = sqs_queue
-    @server_base_url = server_base_url
-    @http_auth = http_auth
+  def initialize(configuration)
+    @command = configuration.command
+
+    s3_client = AWS::S3.new
+    @s3_bucket = s3_client.buckets[configuration.s3_bucket]
+
+    sqs_client = AWS::SQS.new
+    @sqs_queue = sqs_client.queues.named(configuration.sqs_queue_name)
+
+    @server_base_url = configuration.server_base_url
+    
+    @http_auth = nil
+    auth_settings = configuration.read_multiple([:username, :password])
+    if auth_settings[:username] || auth_settings[:password]
+      @http_auth = {
+        :username => auth_settings[:username],
+        :password => auth_settings[:password]
+      }
+    end
+
     @termination_requested = false
     @current_test_result_id = nil
-    @temp_root = temp_root
-    @repo_url = git_repo
-    @ssh_key = ssh_key
-    @seed_repo_path = seed_repo_path
+    @temp_root = configuration.tmp_dir
+    @repo_url = configuration.git_repo
+    @ssh_key = configuration.ssh_key
+    @seed_repo_path = configuration.seed_repo_path
   end
 
   def run(worker_id)

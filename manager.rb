@@ -2,47 +2,21 @@ require 'socket'
 
 class Manager
 
-  def initialize (
-    command,
-    s3_bucket_name, 
-    sqs_queue_name,
-    server_base_url,
-    http_username,
-    http_password,
-    temp_root,
-    git_repo,
-    ssh_key,
-    seed_repo_path
-  )
-    @s3_client = AWS::S3.new
-    @s3_bucket = @s3_client.buckets[s3_bucket_name]
-
-    @sqs_client = AWS::SQS.new
-    @sqs_queue = @sqs_client.queues.named(sqs_queue_name)
-
-    @server_base_url = server_base_url
+  def initialize(configuration)
+    @server_base_url = configuration.server_base_url
 
     @http_auth = nil
-    
-    if http_username || http_password
+   
+    auth_settings = configuration.read_multiple([:username, :password])
+
+    if auth_settings[:username] || auth_settings[:password] 
       @http_auth = {
-        :username => http_username,
-        :password => http_password
+        :username => auth_settings[:username],
+        :password => auth_settings[:password]
       }
     end
 
-    @worker = Runner.new(command,
-                         @s3_bucket,
-                         @sqs_queue,
-                         @server_base_url,
-                         @http_auth,
-                         temp_root,
-                         git_repo,
-                         ssh_key,
-                         seed_repo_path)
-
-    @mutex = Mutex.new
-    @cv = ConditionVariable.new
+    @worker = Runner.new(configuration)
   end
 
   def run
@@ -63,6 +37,11 @@ class Manager
             if @termination_required
               @worker.terminate
               @termination_required = false
+            end
+
+            if @configuration_update_requested
+              @configuration.update
+              @configuration_update_requested = false
             end
 
             if @worker.terminated?
@@ -92,6 +71,10 @@ class Manager
 
   def terminate
     @termination_required = true
+  end
+
+  def update_configuration
+    @configuration_update_requested = true
   end
 
 private

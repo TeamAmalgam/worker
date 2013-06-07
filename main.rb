@@ -1,7 +1,6 @@
 #!/usr/bin/env ruby
 
 require 'aws-sdk'
-require 'optparse'
 require 'yaml'
 require 'digest'
 require 'tmpdir'
@@ -10,80 +9,15 @@ require 'json'
 require 'httparty'
 
 require_relative 'common.rb'
+require_relative 'configuration.rb'
 require_relative 'runner.rb'
 require_relative 'manager.rb'
 
-options = {}
-OptionParser.new do |opts|
+config_file_path = ARGV[0]
+raise "Configuration file path must be specified." if config_file_path.nil?
+configuration = Configuration.new(config_file_path)
 
-  opts.on("-a", "--access-key-id ACCESS_KEY",
-          "The AWS Access Key id to use") do |access_key|
-    options[:access_key_id] = access_key
-  end
-
-  opts.on("-s", "--secret-access-key SECRET_KEY",
-          "The AWS Secret Access Key to use") do |secret_key|
-    options[:secret_access_key] = secret_key
-  end
-
-  opts.on("-b", "--bucket BUCKET_NAME",
-          "The S3 bucket to download models from and upload results to.") do |bucket|
-    options[:s3_bucket] = bucket
-  end
-  
-  opts.on("-q", "--queue QUEUE_NAME",
-          "The SQS queue to listen to.") do |queue_name|
-    options[:sqs_queue_name] = queue_name
-  end
-
-  opts.on("-e", "--executable EXECUTABLE_PATH",
-          "The command to execute on each model.") do |command|
-    options[:command] = command
-  end
-
-  opts.on("-d", "--working-directory DIRECTORY",
-          "The directory to work in.") do |directory|
-    options[:tmp_dir] = directory
- 
-  end
-  
-  opts.on("-P", "--post-url POST_URL",
-          "The url to post to once the job is complete") do |url|
-    options[:post_url] = url
-  end
-
-  opts.on("-u", "--username USERNAME",
-          "The username to use for HTTP Auth on the post request") do |username|
-    options[:username] = username
-  end
-
-  opts.on("-p", "--password PASSWORD",
-          "The password to use for HTTP Auth on the post request") do |password|
-    options[:password] = password
-  end
-  
-  opts.on("-c", "--config-file CONFIG_FILE",
-          "The config-file to use.") do |config_file|
-    file_options = YAML.load(File.read(config_file))
-    options = options.merge(file_options)
-  end
-end.parse!
-
-raise "Must provide AWS credentials." if options[:access_key_id].nil? || options[:secret_access_key].nil?
-AWS.config(:access_key_id => options[:access_key_id],
-           :secret_access_key => options[:secret_access_key])
-
-manager = Manager.new(options[:command],
-                      options[:s3_bucket],
-                      options[:sqs_queue_name],
-                      options[:server_base_url],
-                      options[:username],
-                      options[:password],
-                      options[:tmp_dir],
-                      options[:git_repo],
-                      options[:ssh_key],
-                      options[:seed_repo_path])
-
+manager = Manager.new(configuration)
 manager.run
 
 int_count = 0
