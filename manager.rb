@@ -46,6 +46,7 @@ class Manager
           heartbeat(@worker.current_test_result_id)
         end
       end
+      @worker.join
       unregister
     }
   end

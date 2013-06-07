@@ -2,22 +2,6 @@ class Runner
 
   def initialize(configuration)
     @configuration = configuration
-
-    s3_client = AWS::S3.new
-    @s3_bucket = s3_client.buckets[configuration.s3_bucket]
-
-    sqs_client = AWS::SQS.new
-    @sqs_queue = sqs_client.queues.named(configuration.sqs_queue_name)
-
-    @http_auth = nil
-    auth_settings = configuration.read_multiple([:username, :password])
-    if auth_settings[:username] || auth_settings[:password]
-      @http_auth = {
-        :username => auth_settings[:username],
-        :password => auth_settings[:password]
-      }
-    end
-
     @termination_requested = false
     @current_test_result_id = nil
   end
@@ -27,14 +11,13 @@ class Runner
     @thread = Thread.new do
       catch(:termination) do
         while !@termination_requested
-          @sqs_queue.poll(:idle_timeout => 2 * 60) do |message|
+          get_sqs_queue.poll(:idle_timeout => 2 * 60) do |message|
             begin
               process_message(message)
             rescue Exception => e
               puts e.inspect
               raise e
             end
-
             throw :termination if @termination_requested
           end
         end
@@ -104,7 +87,7 @@ private
   end
 
   def download_model(temporary_directory, s3_key)
-    obj = @s3_bucket.objects[s3_key]
+    obj = get_s3_bucket.objects[s3_key]
     tarball_filename = File.basename(s3_key)
     model_directory = File.join(temporary_directory, "model")
 
@@ -255,7 +238,7 @@ private
 
     # Upload the tarball to s3
     key = "results/" + message_id + ".tar.bz2"
-    @s3_bucket.objects[key].write(:file => tarball_path)
+    get_s3_bucket.objects[key].write(:file => tarball_path)
 
     return key
   end
@@ -270,7 +253,7 @@ private
 
     HTTParty.post(post_url, {
       :body => body.to_json,
-      :basic_auth => @http_auth
+      :basic_auth => get_http_auth
     })
   end
 
@@ -290,7 +273,29 @@ private
 
     HTTParty.post(post_url, {
       :body => completion_body.to_json,
-      :basic_auth => @http_auth
+      :basic_auth => get_http_auth
     })
+  end
+
+  def get_http_auth
+    auth = @configuration.read_multiple([:username, :password])
+    if auth[:username] || auth[:password]
+      return auth
+    else
+      return nil
+    end
+    return auth
+  end
+
+  def get_s3_bucket
+    s3_client = AWS::S3.new
+    s3_bucket = s3_client.buckets[@configuration.s3_bucket]
+    return s3_bucket
+  end
+
+  def get_sqs_queue
+    sqs_client = AWS::SQS.new
+    sqs_queue = sqs_client.queues.named(@configuration.sqs_queue_name)
+    return sqs_queue
   end
 end
