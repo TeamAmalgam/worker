@@ -70,31 +70,31 @@ class Manager
 
 private
 
-  #TODO: Need to grab register_url and auth params atomically
   def register
-    puts "Registering with #{register_url}"
-    response = HTTParty.post(register_url, {
+    settings = @configuration.read_multiple([:server_base_url, :username, :password])
+    puts "Registering with #{register_url(settings[:server_base_url])}"
+    response = HTTParty.post(register_url(settings[:server_base_url]), {
       :body => { :hostname => hostname }.to_json,
-      :basic_auth => http_auth_params
+      :basic_auth => http_auth_params(settings)
     })
 
     parsed_response = JSON.parse(response.parsed_response)
     @worker_id = parsed_response["worker_id"].to_i
   end
 
-  #TODO: Need to grab unregister_rul and auth params atomically
   def unregister
-    HTTParty.post(unregister_url, {
-      :basic_auth => http_auth_params
+    settings = @configuration.read_multiple([:server_base_url, :username, :password])
+    HTTParty.post(unregister_url(settings[:server_base_url]), {
+      :basic_auth => http_auth_params(settings)
     })
   end
 
-  #TODO: Need to grab heartbeat_url and auth params atomically
   def heartbeat(current_test_result_id)
+    settings = @configuration.read_multiple([:server_base_url, :username, :password])
     begin
-      HTTParty.post(heartbeat_url, {
+      HTTParty.post(heartbeat_url(settings[:server_base_url]), {
         :body => { :test_id => current_test_result_id }.to_json,
-        :basic_auth => http_auth_params
+        :basic_auth => http_auth_params(settings)
       })
     rescue Exception => e
       puts "Manager failed to heartbeat:"
@@ -106,25 +106,27 @@ private
     Socket.gethostname
   end
 
-  def http_auth_params
-    auth_params = @configuration.read_multiple([:username, :password])
-    if auth_params[:username] || auth_params[:password]
-      return auth_params
+  def http_auth_params(params_hash)
+    if params_hash[:username] || params_hash[:password]
+      return {
+        :username => params_hash[:username],
+        :password => params_hash[:password]
+      }
     else
       return nil
     end
   end
 
-  def register_url
-    "#{@configuration.server_base_url}/workers/register"
+  def register_url(base_url)
+    "#{base_url}/workers/register"
   end
 
-  def unregister_url
-    "#{@configuration.server_base_url}/workers/#{@worker_id}/unregister"
+  def unregister_url(base_url)
+    "#{base_url}/workers/#{@worker_id}/unregister"
   end
 
-  def heartbeat_url
-    "#{@configuration.server_base_url}/workers/#{@worker_id}/heartbeat"
+  def heartbeat_url(base_url)
+    "#{base_url}/workers/#{@worker_id}/heartbeat"
   end
 
 end
