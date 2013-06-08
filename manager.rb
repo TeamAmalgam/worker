@@ -2,47 +2,10 @@ require 'socket'
 
 class Manager
 
-  def initialize (
-    command,
-    s3_bucket_name, 
-    sqs_queue_name,
-    server_base_url,
-    http_username,
-    http_password,
-    temp_root,
-    git_repo,
-    ssh_key,
-    seed_repo_path
-  )
-    @s3_client = AWS::S3.new
-    @s3_bucket = @s3_client.buckets[s3_bucket_name]
+  def initialize(configuration)
+    @configuration = configuration
 
-    @sqs_client = AWS::SQS.new
-    @sqs_queue = @sqs_client.queues.named(sqs_queue_name)
-
-    @server_base_url = server_base_url
-
-    @http_auth = nil
-    
-    if http_username || http_password
-      @http_auth = {
-        :username => http_username,
-        :password => http_password
-      }
-    end
-
-    @worker = Runner.new(command,
-                         @s3_bucket,
-                         @sqs_queue,
-                         @server_base_url,
-                         @http_auth,
-                         temp_root,
-                         git_repo,
-                         ssh_key,
-                         seed_repo_path)
-
-    @mutex = Mutex.new
-    @cv = ConditionVariable.new
+    @worker = Runner.new(configuration)
   end
 
   def run
@@ -65,6 +28,12 @@ class Manager
               @termination_required = false
             end
 
+            if @configuration_update_requested
+              @configuration.update
+              @configuration_update_requested = false
+              puts "Configuration updated"
+            end
+
             if @worker.terminated?
               throw :terminate
             end
@@ -78,6 +47,7 @@ class Manager
           heartbeat(@worker.current_test_result_id)
         end
       end
+      @worker.join
       unregister
     }
   end
@@ -94,13 +64,18 @@ class Manager
     @termination_required = true
   end
 
+  def update_configuration
+    @configuration_update_requested = true
+  end
+
 private
 
   def register
-    puts "Registering with #{register_url}"
-    response = HTTParty.post(register_url, {
+    settings = @configuration.read_multiple([:server_base_url, :username, :password])
+    puts "Registering with #{register_url(settings[:server_base_url])}"
+    response = HTTParty.post(register_url(settings[:server_base_url]), {
       :body => { :hostname => hostname }.to_json,
-      :basic_auth => @http_auth
+      :basic_auth => http_auth_params(settings)
     })
 
     parsed_response = JSON.parse(response.parsed_response)
@@ -108,16 +83,18 @@ private
   end
 
   def unregister
-    HTTParty.post(unregister_url, {
-      :basic_auth => @http_auth
+    settings = @configuration.read_multiple([:server_base_url, :username, :password])
+    HTTParty.post(unregister_url(settings[:server_base_url]), {
+      :basic_auth => http_auth_params(settings)
     })
   end
 
   def heartbeat(current_test_result_id)
+    settings = @configuration.read_multiple([:server_base_url, :username, :password])
     begin
-      HTTParty.post(heartbeat_url, {
+      HTTParty.post(heartbeat_url(settings[:server_base_url]), {
         :body => { :test_id => current_test_result_id }.to_json,
-        :basic_auth => @http_auth
+        :basic_auth => http_auth_params(settings)
       })
     rescue Exception => e
       puts "Manager failed to heartbeat:"
@@ -129,16 +106,27 @@ private
     Socket.gethostname
   end
 
-  def register_url
-    "#{@server_base_url}/workers/register"
+  def http_auth_params(params_hash)
+    if params_hash[:username] || params_hash[:password]
+      return {
+        :username => params_hash[:username],
+        :password => params_hash[:password]
+      }
+    else
+      return nil
+    end
   end
 
-  def unregister_url
-    "#{@server_base_url}/workers/#{@worker_id}/unregister"
+  def register_url(base_url)
+    "#{base_url}/workers/register"
   end
 
-  def heartbeat_url
-    "#{@server_base_url}/workers/#{@worker_id}/heartbeat"
+  def unregister_url(base_url)
+    "#{base_url}/workers/#{@worker_id}/unregister"
+  end
+
+  def heartbeat_url(base_url)
+    "#{base_url}/workers/#{@worker_id}/heartbeat"
   end
 
 end
