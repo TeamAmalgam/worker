@@ -79,7 +79,7 @@ class Configuration
   end
 
   def load_configuration
-    conf = YAML.load(File.read(@config_file_path))
+    conf = YAML.safe_load(File.read(@config_file_path))
     validate_configuration_hash(conf)
 
     conf.each do |key, value|
@@ -91,7 +91,7 @@ class Configuration
     # All hash keys must be settings
     hash.each_key do |key|
       unless SETTINGS.include?(key)
-        raise "Unknown setting #{setting} specified in the configuration file."
+        raise "Unknown setting #{key} specified in the configuration file."
       end
     end
 
