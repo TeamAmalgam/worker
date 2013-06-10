@@ -49,7 +49,7 @@ private
 
   def process_message(message)
     puts "Received Job:"
-    job_description = YAML.load(message.body)
+    job_description = YAML.safe_load(message.body)
     puts job_description.inspect
 
     @current_test_result_id = job_description[:test_id]

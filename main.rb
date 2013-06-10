@@ -1,12 +1,16 @@
 #!/usr/bin/env ruby
 
 require 'aws-sdk'
-require 'yaml'
+require 'safe_yaml'
 require 'digest'
 require 'tmpdir'
 require 'benchmark'
 require 'json'
 require 'httparty'
+
+# Configuration depends on deserializing symbols.
+# Worst case is that we run out of memory.
+SafeYAML::OPTIONS[:deserialize_symbols] = true
 
 require_relative 'common.rb'
 require_relative 'configuration.rb'
