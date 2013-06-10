@@ -286,6 +286,7 @@ private
       :correct => results[:correct] ? 1 : 0,
       :started_at => started_at,
       :runtime_seconds => results[:benchmark_result].real,
+      :cpu_time_seconds => results[:benchmark_result].total,
       :tarball_s3_key => s3_key
     }
 
