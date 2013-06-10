@@ -1,17 +1,9 @@
 class Runner
 
-  def initialize (command, s3_bucket, sqs_queue, server_base_url, http_auth, temp_root, git_repo, ssh_key, seed_repo_path)
-    @command = command
-    @s3_bucket = s3_bucket
-    @sqs_queue = sqs_queue
-    @server_base_url = server_base_url
-    @http_auth = http_auth
+  def initialize(configuration)
+    @configuration = configuration
     @termination_requested = false
     @current_test_result_id = nil
-    @temp_root = temp_root
-    @repo_url = git_repo
-    @ssh_key = ssh_key
-    @seed_repo_path = seed_repo_path
   end
 
   def run(worker_id)
@@ -19,14 +11,13 @@ class Runner
     @thread = Thread.new do
       catch(:termination) do
         while !@termination_requested
-          @sqs_queue.poll(:idle_timeout => 2 * 60) do |message|
+          get_sqs_queue.poll(:idle_timeout => 2 * 60) do |message|
             begin
               process_message(message)
             rescue Exception => e
               puts e.inspect
               raise e
             end
-
             throw :termination if @termination_requested
           end
         end
@@ -70,7 +61,7 @@ private
     results = nil
     tarball_s3_key = nil
 
-    Dir.mktmpdir(nil, @temp_root) do |temp_dir|
+    Dir.mktmpdir(nil, @configuration.tmp_dir) do |temp_dir|
       puts "Using temporary directory #{temp_dir}"
       Dir.chdir(temp_dir) do
         download_model(temp_dir, job_description[:model_s3_key])
@@ -96,7 +87,7 @@ private
   end
 
   def download_model(temporary_directory, s3_key)
-    obj = @s3_bucket.objects[s3_key]
+    obj = get_s3_bucket.objects[s3_key]
     tarball_filename = File.basename(s3_key)
     model_directory = File.join(temporary_directory, "model")
 
@@ -125,28 +116,29 @@ private
     # If we have a seed repo then we will copy it into place and pull
     # instead of cloning. This saves us bandwidth since the alloy repo is quite
     # large. By using a seed repo we only need to pull the latest commits.
-    if @seed_repo_path
+    seed_repo_path = @configuration.seed_repo_path
+    if seed_repo_path
       # We use --reflink=auto to reduce disk usage, it performs a shallow copy
       # with copy-on-write if the operating system supports it. Otherwise, it
       # will perform a regular copy.
-      puts "cp --reflink=auto -r #{@seed_repo_path} ./moolloy"
-      `cp --reflink=auto -r #{@seed_repo_path} ./moolloy`
+      puts "cp --reflink=auto -r #{seed_repo_path} ./moolloy"
+      `cp --reflink=auto -r #{seed_repo_path} ./moolloy`
       raise "Failed to copy seed repo." unless $?.to_i == 0
     else
       # Clone the repo using the ssh key specified in the configuration.
       # We accomplish this by spawning a new ssh agent for the command and
       # loading the key into it.
-      puts "ssh-agent bash -c 'ssh-add #{@ssh_key}; git clone #{@repo_url} moolloy'"
-      `ssh-agent bash -c 'ssh-add #{@ssh_key}; git clone #{@repo_url} moolloy'`
+      puts "ssh-agent bash -c 'ssh-add #{@configuration.ssh_key}; git clone #{@configuration.repo_url} moolloy'"
+      `ssh-agent bash -c 'ssh-add #{@configuration.ssh_key}; git clone #{@configuration.repo_url} moolloy'`
       raise "Failed to clone git repo." unless $?.to_i == 0
     end
 
     Dir.chdir(File.join(temporary_directory, "moolloy")) do
-      if @seed_repo_path
+      if seed_repo_path
         # If we copied a seed we need to pull it to get the latest commits.
         # Once again we use the key specified in the configuration.
-        puts "ssh-agent bash -c 'ssh-add #{@ssh_key}; git pull" 
-        `ssh-agent bash -c 'ssh-add #{@ssh_key}; git pull'`
+        puts "ssh-agent bash -c 'ssh-add #{@configuration.ssh_key}; git pull" 
+        `ssh-agent bash -c 'ssh-add #{@configuration.ssh_key}; git pull'`
         raise "Failed to pull git repo." unless $?.to_i == 0
       end
 
@@ -158,8 +150,8 @@ private
       raise "Submodule init failed." unless $?.to_i == 0
 
       # Update the submodules using the ssh key given by the configuration.
-      puts "ssh-agent bash -c 'ssh-add #{@ssh_key}; git submodule update'"
-      `ssh-agent bash -c 'ssh-add #{@ssh_key}; git submodule update'`
+      puts "ssh-agent bash -c 'ssh-add #{@configuration.ssh_key}; git submodule update'"
+      `ssh-agent bash -c 'ssh-add #{@configuration.ssh_key}; git submodule update'`
       raise "Submodule update failed." unless $?.to_i == 0
 
       # Build Moolloy
@@ -187,7 +179,7 @@ private
 
     puts "Running moolloy."
     benchmark_result = Benchmark.measure do
-      `#{@command} -jar #{File.join(temporary_directory, "moolloy.jar")} "#{model_directory}/model.als" > stdout.out 2> stderr.out`
+      `#{@configuration.command} -jar #{File.join(temporary_directory, "moolloy.jar")} "#{model_directory}/model.als" > stdout.out 2> stderr.out`
     end
 
     return_code = $?.to_i
@@ -264,13 +256,13 @@ private
 
     # Upload the tarball to s3
     key = "results/" + message_id + ".tar.bz2"
-    @s3_bucket.objects[key].write(:file => tarball_path)
+    get_s3_bucket.objects[key].write(:file => tarball_path)
 
     return key
   end
 
   def post_start(test_id)
-    post_url = "#{@server_base_url}/workers/#{@worker_id}/start"
+    post_url = "#{@configuration.server_base_url}/workers/#{@worker_id}/start"
     puts "Making post request to #{post_url}"
 
     body = {
@@ -279,12 +271,12 @@ private
 
     HTTParty.post(post_url, {
       :body => body.to_json,
-      :basic_auth => @http_auth
+      :basic_auth => get_http_auth
     })
   end
 
   def post_results(test_id, message_id, started_at, results, s3_key)
-    post_url = "#{@server_base_url}/workers/#{@worker_id}/result"
+    post_url = "#{@configuration.server_base_url}/workers/#{@worker_id}/result"
     puts "Making post request to #{post_url}"
 
     completion_body = {
@@ -299,7 +291,29 @@ private
 
     HTTParty.post(post_url, {
       :body => completion_body.to_json,
-      :basic_auth => @http_auth
+      :basic_auth => get_http_auth
     })
+  end
+
+  def get_http_auth
+    auth = @configuration.read_multiple([:username, :password])
+    if auth[:username] || auth[:password]
+      return auth
+    else
+      return nil
+    end
+    return auth
+  end
+
+  def get_s3_bucket
+    s3_client = AWS::S3.new
+    s3_bucket = s3_client.buckets[@configuration.s3_bucket]
+    return s3_bucket
+  end
+
+  def get_sqs_queue
+    sqs_client = AWS::SQS.new
+    sqs_queue = sqs_client.queues.named(@configuration.sqs_queue_name)
+    return sqs_queue
   end
 end
