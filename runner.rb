@@ -1,3 +1,4 @@
+require 'fileutils'
 class Runner
 
   def initialize(configuration)
@@ -137,7 +138,7 @@ private
       if seed_repo_path
         # If we copied a seed we need to pull it to get the latest commits.
         # Once again we use the key specified in the configuration.
-        puts "ssh-agent bash -c 'ssh-add #{@configuration.ssh_key}; git pull" 
+        puts "ssh-agent bash -c 'ssh-add #{@configuration.ssh_key}; git pull"
         `ssh-agent bash -c 'ssh-add #{@configuration.ssh_key}; git pull'`
         raise "Failed to pull git repo." unless $?.to_i == 0
       end
@@ -170,8 +171,7 @@ private
                           "moolloy",
                           "dist",
                           "alloy-dev.jar")
-    `mv #{dist_path} #{File.join(temporary_directory, "moolloy.jar")}`
-    raise "Failed to acquire jar." unless $?.to_i == 0
+    FileUtils.mv(dist_path, File.join(temporary_directory, "moolloy.jar"))
   end
 
   def run_moolloy(temporary_directory)
@@ -236,16 +236,15 @@ private
     stderr_path = File.join(temporary_directory, "stderr.out")
     model_path = File.join(temporary_directory, "model")
     alloy_solutions_path = File.join(temporary_directory, "alloy_solutions_*.xml")
-    `mkdir #{package_directory}`
-    raise "Failed to create package directory." unless $?.to_i == 0
-    `mv #{stdout_path} #{package_directory}`
-    raise "Failed to move stdout into package." unless $?.to_i == 0
-    `mv #{stderr_path} #{package_directory}`
-    raise "Failed to move stderr into package." unless $?.to_i == 0
-    `mv #{model_path} #{package_directory}`
-    raise "Failed to move model directory into package." unless $?.to_i == 0
-    `mv #{alloy_solutions_path} #{package_directory}`
-    raise "Failed to move solutions into package." unless $?.to_i == 0
+
+    FileUtils.mkdir(package_directory)
+    FileUtils.mv(stdout_path, package_directory)
+    FileUtils.mv(stderr_path, package_directory)
+    FileUtils.mv(model_path, package_directory)
+
+    Dir[alloy_solutions_path].each do |fpath|
+      FileUtils.mv(fpath, package_directory)
+    end
 
     # Tarball the entire temporary directory
     tarball_path = File.join(temporary_directory, "tarball.tar.bz2")
