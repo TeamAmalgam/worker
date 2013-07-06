@@ -122,8 +122,8 @@ private
       # We use --reflink=auto to reduce disk usage, it performs a shallow copy
       # with copy-on-write if the operating system supports it. Otherwise, it
       # will perform a regular copy.
-      puts "cp --reflink=auto -r #{seed_repo_path} ./moolloy"
-      `cp --reflink=auto -r #{seed_repo_path} ./moolloy`
+      puts "cp -r #{seed_repo_path} ./moolloy"
+      `cp -r #{seed_repo_path} ./moolloy`
       raise "Failed to copy seed repo." unless $?.to_i == 0
     else
       # Clone the repo using the ssh key specified in the configuration.
