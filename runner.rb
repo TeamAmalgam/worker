@@ -129,8 +129,8 @@ private
       # Clone the repo using the ssh key specified in the configuration.
       # We accomplish this by spawning a new ssh agent for the command and
       # loading the key into it.
-      puts "ssh-agent bash -c 'ssh-add #{@configuration.ssh_key}; git clone #{@configuration.repo_url} moolloy'"
-      `ssh-agent bash -c 'ssh-add #{@configuration.ssh_key}; git clone #{@configuration.repo_url} moolloy'`
+      puts "ssh-agent bash -c 'ssh-add #{@configuration.ssh_key}; git clone #{@configuration.git_repo} moolloy'"
+      `ssh-agent bash -c 'ssh-add #{@configuration.ssh_key}; git clone #{@configuration.git_repo} moolloy'`
       raise "Failed to clone git repo." unless $?.to_i == 0
     end
 
@@ -147,8 +147,19 @@ private
       puts "Checking out commit #{commit}"
       `git checkout #{commit}`
       raise "Commit checkout failed." unless $?.to_i == 0
+
+      # Assert that we have successfully checked out the commit.
+      actual_commit = `git rev-parse HEAD`.chomp
+      unless $?.to_i == 0 && commit == actual_commit
+        raise "Didn't checkout the correct commit." 
+      end
+  
       `git submodule init`
       raise "Submodule init failed." unless $?.to_i == 0
+
+      commit_file = File.absolute_path(File.join(temporary_directory, "commit"))
+      `git rev-parse HEAD > #{commit_file}`
+      `git submodule foreach 'echo $path \`git rev-parse HEAD\` >> #{commit_file}'`
 
       # Update the submodules using the ssh key given by the configuration.
       puts "ssh-agent bash -c 'ssh-add #{@configuration.ssh_key}; git submodule update'"
@@ -236,11 +247,13 @@ private
     stderr_path = File.join(temporary_directory, "stderr.out")
     model_path = File.join(temporary_directory, "model")
     alloy_solutions_path = File.join(temporary_directory, "alloy_solutions_*.xml")
+    commit_path = File.join(temporary_directory, "commit")
 
     FileUtils.mkdir(package_directory)
     FileUtils.mv(stdout_path, package_directory)
     FileUtils.mv(stderr_path, package_directory)
     FileUtils.mv(model_path, package_directory)
+    FileUtils.mv(commit_path, package_directory)
 
     Dir[alloy_solutions_path].each do |fpath|
       FileUtils.mv(fpath, package_directory)
@@ -249,6 +262,7 @@ private
     # Tarball the entire temporary directory
     tarball_path = File.join(temporary_directory, "tarball.tar.bz2")
     Dir.chdir(package_directory) do
+      `hostname > ./hostname`
       `tar -cjf "#{tarball_path}" #{File.join(".", "*")}`
       raise "Failed to create package archive." unless $?.to_i == 0
     end
