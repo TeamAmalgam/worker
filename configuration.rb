@@ -40,7 +40,7 @@ class Configuration
   end
 
   def initialize(config_file_path)
-    @config_file_path = config_file_path
+    @config_file_path = File.absolute_path(config_file_path)
     @configuration_mutex = Mutex.new
 
     self.update
