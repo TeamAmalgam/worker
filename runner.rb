@@ -1,6 +1,12 @@
 require 'fileutils'
 class Runner
 
+  SIGTERM = -15
+
+  # Process.kill uses negative signals to specify that a process group
+  # should be acted on instead of a single process.
+  PGROUP_SIGTERM = -1 * SIGTERM
+
   def initialize(configuration)
     @configuration = configuration
     @termination_requested = false
@@ -56,7 +62,8 @@ class Runner
 
   def terminate_job
     unless @worker_process_group.nil?
-      Process.kill(-15, @worker_process_group)
+
+      Process.kill(PGROUP_SIGTERM, @worker_process_group)
     end
   end
 
