@@ -29,6 +29,11 @@ class Configuration
     :git_repo
   ]
 
+  SECONDS_PER_SECOND = 1
+  SECONDS_PER_MINUTE = 60
+  MINUTES_PER_HOUR = 60
+  SECONDS_PER_HOUR = SECONDS_PER_MINUTE * MINUTES_PER_HOUR
+
   # Define a public accessor for each setting.
   # We don't use attr_reader because we want to synchronize the read.
   SETTINGS.each do |setting|
@@ -88,9 +93,9 @@ class Configuration
     end
 
     if @worker_timeout.is_a?(Hash)
-      @worker_timeout = (60 * 60) * (@worker_timeout[:hours] || 0) +
-                        60        * (@worker_timeout[:minutes] || 0) +
-                        1         * (@worker_timeout[:seconds] || 0)
+      @worker_timeout = SECONDS_PER_HOUR   * (@worker_timeout[:hours] || 0) +
+                        SECONDS_PER_MINUTE * (@worker_timeout[:minutes] || 0) +
+                        SECONDS_PER_SECOND * (@worker_timeout[:seconds] || 0)
     end
   end
 
