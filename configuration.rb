@@ -15,7 +15,8 @@ class Configuration
     :tmp_dir,
     :git_repo,
     :ssh_key,
-    :seed_repo_path
+    :seed_repo_path,
+    :worker_timeout
   ]
 
   MANDATORY_SETTINGS = [
@@ -27,6 +28,11 @@ class Configuration
     :server_base_url,
     :git_repo
   ]
+
+  SECONDS_PER_SECOND = 1
+  SECONDS_PER_MINUTE = 60
+  MINUTES_PER_HOUR = 60
+  SECONDS_PER_HOUR = SECONDS_PER_MINUTE * MINUTES_PER_HOUR
 
   # Define a public accessor for each setting.
   # We don't use attr_reader because we want to synchronize the read.
@@ -84,6 +90,12 @@ class Configuration
 
     conf.each do |key, value|
       self.instance_variable_set("@#{key}", value)
+    end
+
+    if @worker_timeout.is_a?(Hash)
+      @worker_timeout = SECONDS_PER_HOUR   * (@worker_timeout[:hours] || 0) +
+                        SECONDS_PER_MINUTE * (@worker_timeout[:minutes] || 0) +
+                        SECONDS_PER_SECOND * (@worker_timeout[:seconds] || 0)
     end
   end
 

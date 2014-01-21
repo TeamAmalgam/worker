@@ -34,6 +34,11 @@ class Manager
               puts "Configuration updated"
             end
 
+            if !@worker.run_start_time.nil? &&
+               ((Time.now - @worker.run_start_time) >= @configuration.worker_timeout)
+              terminate_job
+            end
+
             if @worker.terminated?
               throw :terminate
             end
@@ -66,6 +71,11 @@ class Manager
 
   def update_configuration
     @configuration_update_requested = true
+  end
+
+  def terminate_job
+    puts "Terminating the current job"
+    @worker.terminate_job
   end
 
 private

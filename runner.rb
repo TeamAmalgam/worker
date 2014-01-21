@@ -1,10 +1,18 @@
 require 'fileutils'
 class Runner
 
+  SIGTERM = -15
+
+  # Process.kill uses negative signals to specify that a process group
+  # should be acted on instead of a single process.
+  PGROUP_SIGTERM = -1 * SIGTERM
+
   def initialize(configuration)
     @configuration = configuration
     @termination_requested = false
     @current_test_result_id = nil
+    @run_start_time = nil
+    @worker_process_group = nil
   end
 
   def run(worker_id)
@@ -35,6 +43,8 @@ class Runner
   end
 
   def terminate
+    @termination_requested = true
+    terminate_job
     @thread.exit
   end
 
@@ -44,6 +54,17 @@ class Runner
 
   def current_test_result_id
     return @current_test_result_id
+  end
+
+  def run_start_time
+    return @run_start_time
+  end
+
+  def terminate_job
+    unless @worker_process_group.nil?
+
+      Process.kill(PGROUP_SIGTERM, @worker_process_group)
+    end
   end
 
 private
@@ -189,9 +210,15 @@ private
     model_directory = File.join(temporary_directory, "model")
 
     puts "Running moolloy."
+
+    @run_start_time = Time.now
     benchmark_result = Benchmark.measure do
-      `#{@configuration.command} -jar #{File.join(temporary_directory, "moolloy.jar")} "#{model_directory}/model.als" > stdout.out 2> stderr.out`
+      pid = Process.spawn("#{@configuration.command} -jar #{File.join(temporary_directory, "moolloy.jar")} \"#{model_directory}/model.als\" > stdout.out 2> stderr.out", :pgroup => true)
+      @worker_process_group = Process.getpgid(pid)
+      Process.wait(pid)
+      @worker_process_group = nil
     end
+    @run_start_time = nil
 
     return_code = $?.to_i
 

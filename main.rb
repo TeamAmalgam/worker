@@ -21,6 +21,8 @@ config_file_path = ARGV[0]
 raise "Configuration file path must be specified." if config_file_path.nil?
 configuration = Configuration.new(config_file_path)
 
+puts "Timeout is: #{configuration.worker_timeout}"
+
 manager = Manager.new(configuration)
 manager.run
 
@@ -36,6 +38,10 @@ Signal.trap("USR1") do
   else
     Kernel.exit!
   end
+end
+
+Signal.trap("USR2") do
+  manager.terminate_job
 end
 
 Signal.trap("HUP") do
