@@ -40,6 +40,10 @@ Signal.trap("USR1") do
   end
 end
 
+Signal.trap("USR2") do
+  manager.terminate_job
+end
+
 Signal.trap("HUP") do
   puts "Requesting configuration update"
   manager.update_configuration
