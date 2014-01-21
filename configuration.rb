@@ -15,7 +15,8 @@ class Configuration
     :tmp_dir,
     :git_repo,
     :ssh_key,
-    :seed_repo_path
+    :seed_repo_path,
+    :worker_timeout
   ]
 
   MANDATORY_SETTINGS = [
@@ -84,6 +85,12 @@ class Configuration
 
     conf.each do |key, value|
       self.instance_variable_set("@#{key}", value)
+    end
+
+    if @worker_timeout.is_a?(Hash)
+      @worker_timeout = (60 * 60) * (@worker_timeout[:hours] || 0) +
+                        60        * (@worker_timeout[:minutes] || 0) +
+                        1         * (@worker_timeout[:seconds] || 0)
     end
   end
 

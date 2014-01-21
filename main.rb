@@ -21,6 +21,8 @@ config_file_path = ARGV[0]
 raise "Configuration file path must be specified." if config_file_path.nil?
 configuration = Configuration.new(config_file_path)
 
+puts "Timeout is: #{configuration.worker_timeout}"
+
 manager = Manager.new(configuration)
 manager.run
 
