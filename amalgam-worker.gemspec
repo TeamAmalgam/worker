@@ -11,6 +11,10 @@ Gem::Specification.new do |s|
                    'lib/amalgam/worker.rb',
                    'lib/amalgam/worker/manager.rb',
                    'lib/amalgam/worker/runner.rb',
+                   'lib/amalgam/worker/configuration.rb',
+                   'lib/amalgam/worker/downloader.rb',
+                   'lib/amalgam/worker/heartbeater.rb',
+                   'lib/amalgam/worker/uploader.rb',
                    'lib/amalgam/worker/job.rb',
                    'lib/amalgam/worker/job/build_job.rb',
                    'lib/amalgam/worker/job/run_job.rb']
