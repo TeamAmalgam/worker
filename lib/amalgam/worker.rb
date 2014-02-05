@@ -1,7 +1,13 @@
 require_relative '../amalgam'
 
-module Amalgam::Worker
+class Amalgam::Worker
+  def initialize
 
+  end
+
+  def run
+
+  end
 end
 
 require_relative 'worker/manager'

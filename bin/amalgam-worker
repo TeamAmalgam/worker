@@ -1,3 +1,6 @@
 #!/usr/bin/env ruby
 
 require 'amalgam/worker'
+
+worker = Amalgam::Worker.new
+worker.run
