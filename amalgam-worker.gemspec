@@ -12,8 +12,8 @@ Gem::Specification.new do |s|
                    'lib/amalgam/worker/manager.rb',
                    'lib/amalgam/worker/runner.rb',
                    'lib/amalgam/worker/job.rb',
-                   'lib/amalgam/worker/jobs/build_job.rb',
-                   'lib/amalgam/worker/jobs/run_job.rb']
+                   'lib/amalgam/worker/job/build_job.rb',
+                   'lib/amalgam/worker/job/run_job.rb']
   s.executables = ['amalgam-worker']
 
   s.add_runtime_dependency 'aws-sdk', '~> 1.33.0'
