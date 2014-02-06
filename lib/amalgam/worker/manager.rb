@@ -15,7 +15,9 @@ class Amalgam::Worker::Manager
   end
 
   def join
-    @thread.join
+    unless @thread.nil?
+      @thread.join
+    end
     @thread = nil
   end
 
@@ -35,6 +37,7 @@ class Amalgam::Worker::Manager
     rescue => err
       Amalgam::Worker.logger.error("Manager failed to register.")
       Amalgam::Worker.logger.error(err.inspect)
+      Amalgam::Worker.logger.error(err.backtrace.join("\n"))
     end
 
     begin
@@ -48,6 +51,7 @@ class Amalgam::Worker::Manager
     rescue => err
       Amalgam::Worker.logger.error("Manager encountered exception.")
       Amalgam::Worker.logger.error(err.inspect)
+      Amalgam::Worker.logger.error(err.backtrace.join("\n"))
     ensure
       unregister
     end
@@ -77,7 +81,7 @@ class Amalgam::Worker::Manager
     return result
   end
 
-  def maybe_do_heartbeat(job_id)
+  def maybe_do_heartbeat(job_id = nil)
     if (@time_of_last_heartbeat.nil? ||
         seconds_since_last_heartbeat >= @configuration.heartbeat_period)
 

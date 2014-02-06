@@ -48,13 +48,14 @@ class Amalgam::Worker::Heartbeater
     raise "Not registered." if @worker_id.nil?
 
     begin
-      HTTTParty.post(heartbeat_url, {
+      HTTParty.post(heartbeat_url, {
           :body => { :job_id => current_job_id }.to_json,
           :basic_auth => @auth_params
         })
     rescue => err
       Amalgam::Worker.logger.error("Manager Failed to Heartbeat")
       Amalgam::Worker.logger.error(err.inspect)
+      Amalgam::Worker.logger.error(err.backtrace.join("\n"))
     end
   end
 

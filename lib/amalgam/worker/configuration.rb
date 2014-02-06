@@ -74,8 +74,10 @@ class Amalgam::Worker::Configuration
 
   def initialize(config_file_path)
     ATTRIBUTES.each do |name|
-      instance_variable_set("@#{name}", nil)
+      default_value = SETTING_DEFAULTS[name]
+      instance_variable_set("@#{name}", default_value)
     end
+
 
     @config_file_path = File.absolute_path(config_file_path)
     @configuration_mutex = Mutex.new

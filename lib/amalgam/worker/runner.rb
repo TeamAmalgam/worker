@@ -42,6 +42,8 @@ class Amalgam::Worker::Runner
     rescue => err
       Amalgam::Worker.logger.error("Worker caught error.")
       Amalgam::Worker.logger.error(err.inspect)
+      Amalgam::Worker.logger.error(err.backtrace.join("\n"))
+      
       error_caught = true
       @result = { :return_code => 255 }
     end

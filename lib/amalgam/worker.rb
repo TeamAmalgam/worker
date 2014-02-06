@@ -21,6 +21,18 @@ class Amalgam::Worker
   def join
     @manager.join
   end
+
+  def termination_request
+    @manager.request_termination
+  end
+
+  def terminate_current_job
+    @manager.terminate_job
+  end
+
+  def update_configuration
+    @manager.update_configuration
+  end
 end
 
 require_relative 'worker/manager'
