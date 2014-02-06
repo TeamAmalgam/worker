@@ -32,19 +32,24 @@ class Amalgam::Worker::Manager
   private
 
   def thread_main
+    Amalgam::Worker.logger.info("Manager trying to register.")
     begin
       register
     rescue => err
       Amalgam::Worker.logger.error("Manager failed to register.")
       Amalgam::Worker.logger.error(err.inspect)
       Amalgam::Worker.logger.error(err.backtrace.join("\n"))
+      return
     end
+
+    Amalgam::Worker.logger.info("Manager registered successfully.")
 
     begin
       while (!@termination_requested)
         job = poll_for_job
 
         unless job.nil?
+          Amalgam::Worker.logger.info("Got job.")
           run_job(job)
         end
       end
@@ -53,6 +58,7 @@ class Amalgam::Worker::Manager
       Amalgam::Worker.logger.error(err.inspect)
       Amalgam::Worker.logger.error(err.backtrace.join("\n"))
     ensure
+      Amalgam::Worker.logger.info("Manager unregistering.")
       unregister
     end
   end

@@ -3,7 +3,7 @@ require 'amalgam/worker'
 describe Amalgam::Worker::Queue::TestQueue do
 
   before :all do
-    @queue = Amalgam::Worker::Queue::TestQueue.new
+    @queue = Amalgam::Worker::Queue.create(:test, nil)
   end
 
   it 'should return the job descriptions added in order' do

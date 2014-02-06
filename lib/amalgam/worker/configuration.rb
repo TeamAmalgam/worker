@@ -8,29 +8,41 @@ class Amalgam::Worker::Configuration
   SECONDS_PER_HOUR = SECONDS_PER_MINUTE * MINUTES_PER_HOUR
 
   SETTINGS = [
+    # AWS Credentials.
     :access_key_id,
     :secret_access_key,
-    :s3_bucket,
-    :sqs_queue_name,
-    :server_base_url,
-    :username,
-    :password,
-    :tmp_dir,
-    :git_repo,
-    :ssh_key,
-    :worker_timeout,
-    :heartbeat_period,
-    :sleep_interval,
-    :idle_timeout
+
+    :tmp_dir, # The temporary directory to work in.
+    :git_repo, # URL of the git repo containing moolloy.
+    :ssh_key, # The ssh key to use when cloning the repo.
+    :worker_timeout, # Maximum amount of time a worker will spec on a job.
+    :heartbeat_period, # Time between heartbeats.
+    :sleep_interval, # Time to sleep between worker checks.
+    :idle_timeout, # Time to spend polling for jobs before checking other state
+
+    :heartbeater_type, # The type of heartbeater to use.
+    :uploader_type, # The type of uploader to use.
+    :downloader_type, # The type of downloader to use.
+    :queue_type, # The type of queue to use.
+
+    :heartbeater_options, # Options to pass to the heartbeater.
+    :uploader_options, # Options to pass to the uploader.
+    :downloader_options, # Options to pass to the downloader.
+    :queue_options # Options to pass to the queue.
   ]
 
   MANDATORY_SETTINGS = [
     :access_key_id,
     :secret_access_key,
-    :s3_bucket,
-    :sqs_queue_name,
-    :server_base_url,
-    :git_repo
+    :git_repo,
+    :heartbeater_type,
+    :uploader_type,
+    :downloader_type,
+    :queue_type,
+    :heartbeater_options,
+    :uploader_options,
+    :downloader_options,
+    :queue_options
   ]
 
   NON_MANDATORY_SETTINGS = SETTINGS - MANDATORY_SETTINGS
@@ -40,10 +52,8 @@ class Amalgam::Worker::Configuration
     :heartbeat_period => 5  * SECONDS_PER_MINUTE,
     :sleep_interval   => 15 * SECONDS_PER_SECOND,
     :tmp_dir          => nil,
-    :username         => nil,
-    :password         => nil,
-    :ssh_key          => nil,
-    :idle_timeout     => 2  * SECONDS_PER_MINUTE
+    :idle_timeout     => 2  * SECONDS_PER_MINUTE,
+    :ssh_key          => nil
   }
 
   # All Non-Mandatory settings must have an entry in the
@@ -115,14 +125,16 @@ class Amalgam::Worker::Configuration
   end
 
   def update_configuration_objects
-    @uploader = Amalgam::Worker::Uploader.new(@s3_bucket)
-    @downloader = Amalgam::Worker::Downloader.new(@s3_bucket)
-    @queue = Amalgam::Worker::Queue::SqsQueue.new(@sqs_queue_name,
-                                                  @idle_timeout)
-    @heartbeater = Amalgam::Worker::Heartbeater.new(@server_base_url,
-                                                    @username,
-                                                    @password,
-                                                    @heartbeater)
+    @uploader = Amalgam::Worker::Uploader.create(@uploader_type,
+                                                 @uploader_options,
+                                                 @uploader)
+    @downloader = Amalgam::Worker::Downloader.create(@downloader_type,
+                                                     @downloader_options,
+                                                     @downloader)
+    @queue = Amalgam::Worker::Queue.create(@queue_type, @queue_options, @queue)
+    @heartbeater = Amalgam::Worker::Heartbeater.create(@heartbeater_type,
+                                                       @heartbeater_options,
+                                                       @heartbeater)
   end
 
   def validate_configuration_hash(hash)

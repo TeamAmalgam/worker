@@ -12,3 +12,8 @@ class Amalgam::Worker::Queue::SqsQueue
     return YAML.safe_load(message.body)
   end
 end
+
+Amalgam::Worker::Queue.register_queue(
+    :sqs,
+    Amalgam::Worker::Queue::SqsQueue
+)

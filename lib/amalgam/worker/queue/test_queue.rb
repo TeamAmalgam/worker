@@ -1,6 +1,6 @@
 class Amalgam::Worker::Queue::TestQueue
 
-  def initialize
+  def initialize(options, old_queue)
     @items = []
   end
 
@@ -13,3 +13,8 @@ class Amalgam::Worker::Queue::TestQueue
   end
 
 end
+
+Amalgam::Worker::Queue.register_queue(
+    :test,
+    Amalgam::Worker::Queue::TestQueue
+)
