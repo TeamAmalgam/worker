@@ -1,9 +1,15 @@
 require 'amalgam/worker'
+require 'logger'
 
 describe Amalgam::Worker::Queue::TestQueue do
 
   before :all do
+    Amalgam::Worker.logger = Logger.new('/dev/null')
     @queue = Amalgam::Worker::Queue.create(:test, nil)
+  end
+
+  after :all do
+    Amalgam::Worker.logger = nil
   end
 
   it 'should return the job descriptions added in order' do

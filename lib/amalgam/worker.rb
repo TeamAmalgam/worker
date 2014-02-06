@@ -3,6 +3,10 @@ require_relative '../amalgam'
 
 class Amalgam::Worker
   class << self
+    def logger=(value)
+      @logger = value
+    end
+
     def logger
       @logger ||= Logger.new(STDERR)
       return @logger

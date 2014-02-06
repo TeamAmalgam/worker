@@ -27,7 +27,7 @@ class Amalgam::Worker::Job
       @jobs[identifier] = nil
     end
 
-    def create(job_description)
+    def create(job_description, configuration)
       jobs = @jobs || {}
 
       job_identifier = job_description[:type]
@@ -40,7 +40,7 @@ class Amalgam::Worker::Job
         raise "No job type registered for identifier '#{job_identifier}'"
       end
 
-      return @jobs[job_identifier].new(job_description)
+      return @jobs[job_identifier].new(job_description, configuration)
     end
   end
 

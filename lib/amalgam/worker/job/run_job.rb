@@ -1,6 +1,8 @@
 class Amalgam::Worker::Job::RunJob < Amalgam::Worker::Job
-    def initialize(job_description)
+    def initialize(job_description, configuration)
       Amalgam::Worker.logger.info("Creating RunJob")
+      @job_description = job_description
+      @configuration = configuration
     end
 
     def run

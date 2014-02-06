@@ -2,6 +2,8 @@ class Amalgam::Worker::Queue::TestQueue
 
   def initialize(options, old_queue)
     Amalgam::Worker.logger.info("Created test queue")
+
+    options ||= {}
     @items = []
 
     unless options[:start_items].nil?
