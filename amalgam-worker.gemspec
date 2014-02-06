@@ -8,7 +8,8 @@ Gem::Specification.new do |s|
   s.email       = 'chris@kleynhans.ca'
   s.homepage    = 'http://github.com/TeamAmalgam/worker'
   s.license     = 'MIT'
-  s.files       = ['lib/amalgam.rb',
+  s.files       = ['LICENSE',
+                   'lib/amalgam.rb',
                    'lib/amalgam/worker.rb',
                    'lib/amalgam/worker/manager.rb',
                    'lib/amalgam/worker/runner.rb',
