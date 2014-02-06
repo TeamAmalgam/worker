@@ -1,7 +1,19 @@
 class Amalgam::Worker::Queue::TestQueue
 
   def initialize(options, old_queue)
+    Amalgam::Worker.logger.info("Created test queue")
     @items = []
+
+    unless options[:start_items].nil?
+      Amalgam::Worker.logger.info("Start items are:")
+      options[:start_items].each do |item|
+        Amalgam::Worker.logger.info("\t" + item.inspect)
+      end 
+
+      options[:start_items].each do |item|
+        enqueue(item)
+      end
+    end
   end
 
   def enqueue(job_description)

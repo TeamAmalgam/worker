@@ -46,6 +46,7 @@ class Amalgam::Worker::Manager
 
     begin
       while (!@termination_requested)
+        Amalgam::Worker.logger.info("Polling for job.")
         job = poll_for_job
 
         unless job.nil?
@@ -110,6 +111,7 @@ class Amalgam::Worker::Manager
 
   def run_job(job_description)
     job_id = job_description[:job_id]
+    Amalgam::Worker.logger.info("Signalling start of job: #{job_id}")
     @configuration.heartbeater.signal_start(job_id)
 
     # Ensure that a previous job termination will not carry-over
@@ -120,7 +122,7 @@ class Amalgam::Worker::Manager
 
     @job_start = Time.now
 
-    while (@runner.running)
+    while (@runner.running?)
       maybe_do_heartbeat(job_id)
       maybe_update_configuration
       maybe_terminate_job
@@ -128,7 +130,11 @@ class Amalgam::Worker::Manager
       sleep(@configuration.sleep_interval)
     end
 
+    @runner.join
     result = @runner.result
+    
+    Amalgam::Worker.logger.info("Job Completed, Result: #{result}")
+    Amalgam::Worker.logger.info("Signalling compleion of job: #{job_id}")
     @configuration.heartbeater.signal_completion(job_id, result)
   end
 
@@ -137,6 +143,7 @@ class Amalgam::Worker::Manager
   end
 
   def maybe_terminate_job
+    Amalgam::Worker.logger.info("Job has timed-out.")
     if (seconds_since_job_start >=
           @configuration.worker_timeout ||
         @job_termination_requested)

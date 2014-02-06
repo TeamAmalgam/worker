@@ -37,7 +37,7 @@ class Amalgam::Worker::Job
       end
 
       if @jobs[job_identifier].nil?
-        raise "No job type registered for identifier '#{identifier}'"
+        raise "No job type registered for identifier '#{job_identifier}'"
       end
 
       return @jobs[job_identifier].new(job_description)

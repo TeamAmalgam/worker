@@ -1,4 +1,5 @@
 require 'fileutils'
+require 'tmpdir'
 
 class Amalgam::Worker::Runner
 
@@ -10,6 +11,7 @@ class Amalgam::Worker::Runner
     @thread = nil
     @result = nil
     @job = nil
+    @running = false
   end
 
   def run
@@ -29,30 +31,40 @@ class Amalgam::Worker::Runner
     end
   end
 
+  def running?
+    return @running
+  end
+
   private
 
   def thread_main
-    original_working_dir = Dir.getwd
-    temp_dir = Dir.mktmpdir(configuration.tmp_dir)
-    error_caught = fale
-
     begin
-      @job = Amalgam::Worker::Job.create(@job_description)
-      @result = @job.run
-    rescue => err
-      Amalgam::Worker.logger.error("Worker caught error.")
-      Amalgam::Worker.logger.error(err.inspect)
-      Amalgam::Worker.logger.error(err.backtrace.join("\n"))
-      
-      error_caught = true
-      @result = { :return_code => 255 }
-    end
+      @running = true
 
-    Dir.chdir(original_working_dir)
-    unless error_caught
-      Amalgam::Worker.logger.error("Leaving the job directory behind.")
-      Amalgam::Worker.logger.error(temp_dir)
-      FileUtils.rm_rf(temp_dir)
+      original_working_dir = Dir.getwd
+      temp_dir = Dir.mktmpdir(@configuration.tmp_dir)
+      error_caught = false
+
+      begin
+        @job = Amalgam::Worker::Job.create(@job_description)
+        @result = @job.run
+      rescue => err
+        Amalgam::Worker.logger.error("Worker caught error.")
+        Amalgam::Worker.logger.error(err.inspect)
+        Amalgam::Worker.logger.error(err.backtrace.join("\n"))
+
+        error_caught = true
+        @result = { :return_code => 255 }
+      end
+
+      Dir.chdir(original_working_dir)
+      if error_caught
+        Amalgam::Worker.logger.error("Leaving the job directory behind.")
+        Amalgam::Worker.logger.error(temp_dir)
+        FileUtils.rm_rf(temp_dir)
+      end
+    ensure
+      @running = false
     end
   end
 
