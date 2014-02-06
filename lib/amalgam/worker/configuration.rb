@@ -37,7 +37,7 @@ class Amalgam::Worker::Configuration
     :worker_timeout   => 48 * SECONDS_PER_HOUR,
     :heartbeat_period => 5  * SECONDS_PER_MINUTE,
     :sleep_interval   => 15 * SECONDS_PER_SECOND,
-    :tmp_dir          => "/tmp",
+    :tmp_dir          => nil,
     :username         => nil,
     :password         => nil,
     :ssh_key          => nil
