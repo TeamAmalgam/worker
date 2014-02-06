@@ -87,7 +87,10 @@ class Amalgam::Worker::Configuration
     @uploader = Amalgam::Worker::Uploader.new(@s3_bucket)
     @downloader = Amalgam::Worker::Downloader.new(@s3_bucket)
     @queue = Amalgam::Worker::Queue::SqsQueue.new(@sqs_queue_name)
-    @heartbeater = Amalgam::Worker::Heartbeater.new(@server_base_url, @username, @password)
+    @heartbeater = Amalgam::Worker::Heartbeater.new(@server_base_url,
+                                                    @username,
+                                                    @password,
+                                                    @heartbeater)
   end
 
   def validate_configuration_hash(hash)
