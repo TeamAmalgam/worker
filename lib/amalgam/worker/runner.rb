@@ -9,6 +9,7 @@ class Amalgam::Worker::Runner
     @job_description = job_description
     @thread = nil
     @result = nil
+    @job = nil
   end
 
   def run
@@ -23,7 +24,9 @@ class Amalgam::Worker::Runner
   end
 
   def terminate
-
+    unless @job.nil?
+      @job.terminate
+    end
   end
 
   private

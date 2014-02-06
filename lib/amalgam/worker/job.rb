@@ -8,6 +8,10 @@ class Amalgam::Worker::Job
     raise "Attempt to run abstract job."
   end
 
+  def terminate
+    raise "Attempt to terminate abstract job."
+  end
+
   class << self
     def register_job(identifier, klass)
       @jobs ||= {}
