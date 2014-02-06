@@ -7,6 +7,10 @@ class Amalgam::Worker::Job::RunJob < Amalgam::Worker::Job
 
     def run
       Amalgam::Worker.logger.info("Running RunJob")
+
+      return {
+        :return_code => 255
+      }
     end
 end
 

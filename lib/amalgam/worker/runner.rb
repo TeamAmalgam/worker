@@ -42,11 +42,14 @@ class Amalgam::Worker::Runner
       @running = true
 
       original_working_dir = Dir.getwd
+      
       temp_dir = Dir.mktmpdir(@configuration.tmp_dir)
+      Dir.chdir(temp_dir)
+
       error_caught = false
 
       begin
-        @job = Amalgam::Worker::Job.create(@job_description)
+        @job = Amalgam::Worker::Job.create(@job_description, @configuration)
         @result = @job.run
       rescue => err
         Amalgam::Worker.logger.error("Worker caught error.")
@@ -57,10 +60,15 @@ class Amalgam::Worker::Runner
         @result = { :return_code => 255 }
       end
 
+      if !@result[:return_code].nil? && @result[:return_code] != 0
+        error_caught = true
+      end
+
       Dir.chdir(original_working_dir)
       if error_caught
         Amalgam::Worker.logger.error("Leaving the job directory behind.")
         Amalgam::Worker.logger.error(temp_dir)
+      else
         FileUtils.rm_rf(temp_dir)
       end
     ensure
