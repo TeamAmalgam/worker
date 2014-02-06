@@ -1,3 +1,5 @@
+require 'aws-sdk'
+
 class Amalgam::Worker::Configuration
 
   SECONDS_PER_SECOND = 1
@@ -18,7 +20,8 @@ class Amalgam::Worker::Configuration
     :ssh_key,
     :worker_timeout,
     :heartbeat_period,
-    :sleep_interval
+    :sleep_interval,
+    :idle_timeout
   ]
 
   MANDATORY_SETTINGS = [
@@ -27,8 +30,7 @@ class Amalgam::Worker::Configuration
     :s3_bucket,
     :sqs_queue_name,
     :server_base_url,
-    :git_repo,
-    :heartbeat_period,
+    :git_repo
   ]
 
   NON_MANDATORY_SETTINGS = SETTINGS - MANDATORY_SETTINGS
@@ -40,7 +42,8 @@ class Amalgam::Worker::Configuration
     :tmp_dir          => nil,
     :username         => nil,
     :password         => nil,
-    :ssh_key          => nil
+    :ssh_key          => nil,
+    :idle_timeout     => 2  * SECONDS_PER_MINUTE
   }
 
   # All Non-Mandatory settings must have an entry in the
@@ -70,7 +73,7 @@ class Amalgam::Worker::Configuration
   end
 
   def initialize(config_file_path)
-    @attributes.each do |name|
+    ATTRIBUTES.each do |name|
       instance_variable_set("@#{name}", nil)
     end
 
@@ -105,14 +108,15 @@ class Amalgam::Worker::Configuration
   end
 
   def update_global_objects
-    AWS.config(:access_key_id => @access_key_id,
-               :secret_access_key => @secret_access_key)
+    ::AWS.config(:access_key_id => @access_key_id,
+                 :secret_access_key => @secret_access_key)
   end
 
   def update_configuration_objects
     @uploader = Amalgam::Worker::Uploader.new(@s3_bucket)
     @downloader = Amalgam::Worker::Downloader.new(@s3_bucket)
-    @queue = Amalgam::Worker::Queue::SqsQueue.new(@sqs_queue_name)
+    @queue = Amalgam::Worker::Queue::SqsQueue.new(@sqs_queue_name,
+                                                  @idle_timeout)
     @heartbeater = Amalgam::Worker::Heartbeater.new(@server_base_url,
                                                     @username,
                                                     @password,

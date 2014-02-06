@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'amalgam/worker'
+require 'safe_yaml'
 
 SafeYAML::OPTIONS[:deserialize_symbols] = true
 

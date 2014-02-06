@@ -1,12 +1,25 @@
+require 'logger'
 require_relative '../amalgam'
 
 class Amalgam::Worker
-  def initialize
+  class << self
+    def logger
+      @logger ||= Logger.new(STDERR)
+      return @logger
+    end
+  end
 
+  def initialize(configuration_path)
+    @configuration = Amalgam::Worker::Configuration.new(configuration_path)
+    @manager = Amalgam::Worker::Manager.new(@configuration)
   end
 
   def run
+    @manager.run
+  end
 
+  def join
+    @manager.join
   end
 end
 

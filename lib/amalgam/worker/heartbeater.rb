@@ -1,4 +1,5 @@
 require 'socket'
+require 'httparty'
 
 class Amalgam::Worker::Heartbeater
   
