@@ -1,5 +1,10 @@
 class Amalgam::Worker::Configuration
 
+  SECONDS_PER_SECOND = 1
+  SECONDS_PER_MINUTE = 60
+  MINUTES_PER_HOUR = 60
+  SECONDS_PER_HOUR = SECONDS_PER_MINUTE * MINUTES_PER_HOUR
+
   SETTINGS = [
     :access_key_id,
     :secret_access_key,
@@ -11,7 +16,9 @@ class Amalgam::Worker::Configuration
     :tmp_dir,
     :git_repo,
     :ssh_key,
-    :worker_timeout
+    :worker_timeout,
+    :heartbeat_period,
+    :sleep_interval
   ]
 
   MANDATORY_SETTINGS = [
@@ -20,8 +27,31 @@ class Amalgam::Worker::Configuration
     :s3_bucket,
     :sqs_queue_name,
     :server_base_url,
-    :git_repo
+    :git_repo,
+    :heartbeat_period,
   ]
+
+  NON_MANDATORY_SETTINGS = SETTINGS - MANDATORY_SETTINGS
+
+  SETTING_DEFAULTS = {
+    :worker_timeout   => 48 * SECONDS_PER_HOUR,
+    :heartbeat_period => 5  * SECONDS_PER_MINUTE,
+    :sleep_interval   => 15 * SECONDS_PER_SECOND,
+    :tmp_dir          => "/tmp",
+    :username         => nil,
+    :password         => nil,
+    :ssh_key          => nil
+  }
+
+  # All Non-Mandatory settings must have an entry in the
+  # SETTING_DEFAULTS hash (even if they are nil by default)
+  # to ensure we have considered what happens by default
+  # for the Non-Mandatory settings.
+  NON_MANDATORY_SETTINGS.each do |name|
+    unless SETTING_DEFAULTS.has_key?(name)
+      raise "No default for non-mandatory setting #{name}"
+    end
+  end
 
   ATTRIBUTES = SETTINGS + [
     :uploader,
@@ -30,10 +60,6 @@ class Amalgam::Worker::Configuration
     :heartbeater
   ]
 
-  SECONDS_PER_SECOND = 1
-  SECONDS_PER_MINUTE = 60
-  MINUTES_PER_HOUR = 60
-  SECONDS_PER_HOUR = SECONDS_PER_MINUTE * MINUTES_PER_HOUR
 
   ATTRIBUTES.each do |name|
     define_method(name) do

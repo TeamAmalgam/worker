@@ -43,7 +43,7 @@ class Amalgam::Worker::Heartbeater
     @worker_id = parsed_response["worker_id"].to_i
   end
 
-  def heartbeat(current_job_id)
+  def heartbeat(current_job_id = nil)
     raise "Not registered." if @worker_id.nil?
 
     begin

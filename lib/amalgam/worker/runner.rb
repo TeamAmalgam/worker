@@ -1,5 +1,5 @@
 class Amalgam::Worker::Runner
-  def initialize(job_description)
+  def initialize(configuration, job_description)
     @thread = nil
   end
 
