@@ -1,10 +1,16 @@
 class Amalgam::Worker::Downloader::S3Downloader
   def initialize(options, old_downloader = nil)
-    @s3_bucket = options[:s3_bucket]
+    s3_client = AWS::S3.new
+    @s3_bucket = s3_client.buckets[options[:s3_bucket]]
   end
 
   def download(key, destination_path)
-    raise "Not implemented yet."
+    obj = @s3_bucket.objects[key]
+    File.open(destination_path, "w") do |f|
+      obj.read do |chunk|
+        f.write(chunk)
+      end
+    end
   end
 end
 

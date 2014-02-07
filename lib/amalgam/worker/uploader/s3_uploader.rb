@@ -1,10 +1,11 @@
 class Amalgam::Worker::Uploader::S3Uploader
   def initialize(options, old_uploader)
-    @s3_bucket = options[:s3_bucket]
+    s3_client = AWS::S3.new
+    @s3_bucket = s3_client.buckets[options[:s3_bucket]]
   end
 
   def upload(src_path, key)
-    raise "Not implemented yet."
+    @s3_bucket.objects[key].write(:file => src_path)
   end
 end
 
