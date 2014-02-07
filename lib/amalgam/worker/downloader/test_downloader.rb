@@ -1,13 +1,11 @@
 require 'fileutils'
 class Amalgam::Worker::Downloader::TestDownloader
-  def initialize(file_map, old_downloader)
-    @file_map = file_map || {}
+  def initialize(options, old_downloader)
+    @source_directory = options[:source_directory]
   end
 
   def download(key, destination_path)
-    raise "No such key." if @file_map[key].nil? 
-    
-    source_path = @file_map[key]
+    source_path = File.join(@source_directory, key)
     FileUtils.copy_file(source_path, destination_path)
   end
 end

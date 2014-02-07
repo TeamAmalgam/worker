@@ -39,7 +39,8 @@ class Amalgam::Worker::Job::BuildJob < Amalgam::Worker::Job
 
       # Clone the repo.
       repo_url = @configuration.git_repo
-      clone_results = run_with_ssh_key("git clone #{repo_url} moolloy")
+      Amalgam::Worker.logger.info("Cloning git repo.")
+      clone_results = run_with_ssh_key("git clone #{repo_url} moolloy 2>&1")
       if $? != 0
         return {
           :return_code => $?,
@@ -53,7 +54,8 @@ class Amalgam::Worker::Job::BuildJob < Amalgam::Worker::Job
 
         # Checkout the commit we want.
         commit = @job_description[:commit]
-        checkout_results = `git checkout #{commit}`
+        Amalgam::Worker.logger.info("Checking out commit: #{commit}")
+        checkout_results = `git checkout #{commit} 2>&1`
         if $? != 0
           return {
             :return_code => $?,
@@ -64,7 +66,8 @@ class Amalgam::Worker::Job::BuildJob < Amalgam::Worker::Job
 
         # Git submodule init / update
 
-        submodule_results = `git submodule init`
+        Amalgam::Worker.logger.info("Updating submodules.")
+        submodule_results = `git submodule init 2>&1`
         if $? != 0
           return {
             :return_code => $?,
@@ -73,7 +76,7 @@ class Amalgam::Worker::Job::BuildJob < Amalgam::Worker::Job
           }
         end
 
-        submodule_resuls = run_with_ssh_key('git submodule update')
+        submodule_results = run_with_ssh_key('git submodule update 2>&1')
         if $? != 0
           return {
             :return_code => $?,
@@ -84,7 +87,8 @@ class Amalgam::Worker::Job::BuildJob < Amalgam::Worker::Job
 
         # ant dist
 
-        build_results = `ant deps && ant configure && ant dist`
+        Amalgam::Worker.logger.info("Building...")
+        build_results = `ant deps 2>&1 && ant configure 2>&1 && ant dist 2>&1`
         if $? != 0
           return {
             :return_code => $?,
@@ -92,6 +96,7 @@ class Amalgam::Worker::Job::BuildJob < Amalgam::Worker::Job
             :error_details => build_results
           }
         end
+        Amalgam::Worker.logger.info("Build Complete.")
 
         # Sanity test
 
@@ -109,6 +114,7 @@ class Amalgam::Worker::Job::BuildJob < Amalgam::Worker::Job
 
         # Upload jar
 
+        Amalgam::Worker.logger.info("Uploading jar.")
         uploader = @configuration.uploader
         uploader.upload(alloy_path, "builds/#{commit}.jar")
 
