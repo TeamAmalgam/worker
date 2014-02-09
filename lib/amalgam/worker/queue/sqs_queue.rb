@@ -1,15 +1,23 @@
 class Amalgam::Worker::Queue::SqsQueue
-  def initialize(sqs_queue_name, idle_timeout)
+  def initialize(options, old_queue)
     sqs_client = AWS::SQS.new
-    @sqs_queue = sqs_client.queues.named(sqs_queue_name)
-    @idle_timeout = idle_timeout
+    @sqs_queue = sqs_client.queues.named(options[:sqs_queue])
   end
 
   def poll
-    message = @sqs_queue.poll(:idle_timeout => @idle_timeout)
-
+    message = @sqs_queue.receive_message
+  
     return nil if message.nil?
-    return YAML.safe_load(message.body)
+
+    message_body = YAML.safe_load(message.body)
+
+    return nil if message_body[:version] != 2
+
+    message_body[:secret_key] = message.id
+
+    message.delete
+
+    return message_body
   end
 end
 

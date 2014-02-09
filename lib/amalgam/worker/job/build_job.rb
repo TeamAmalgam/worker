@@ -122,7 +122,7 @@ class Amalgam::Worker::Job::BuildJob < Amalgam::Worker::Job
 
         return {
           :return_code => 0,
-          :build_key => "builds/#{commit}.jar"
+          :result_s3_key => "builds/#{commit}.jar"
         }
 
       ensure

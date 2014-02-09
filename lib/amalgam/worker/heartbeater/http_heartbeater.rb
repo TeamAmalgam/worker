@@ -108,7 +108,7 @@ class Amalgam::Worker::Heartbeater::HttpHeartbeater
   end
 
   def completion_url(job_id)
-    "#{@server_base_url}/jobs/#{job_id}/complete"
+    "#{@server_base_url}/jobs/#{job_id}/finish"
   end
 
 end

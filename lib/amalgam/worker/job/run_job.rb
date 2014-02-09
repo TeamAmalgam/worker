@@ -167,9 +167,9 @@ class Amalgam::Worker::Job::RunJob < Amalgam::Worker::Job
         return {
           :return_code => return_code,
           :correct => (correct ? 1 : 0),
-          :runtime_seconds => benchmark_result.real,
+          :real_time_seconds => benchmark_result.real,
           :cpu_time_seconds => benchmark_result.total,
-          :tarball_s3_key => key
+          :result_s3_key => key
         }
       ensure
         Dir.chdir(working_directory)

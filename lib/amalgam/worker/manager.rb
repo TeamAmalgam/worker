@@ -131,7 +131,9 @@ class Amalgam::Worker::Manager
     end
 
     @runner.join
-    result = @runner.result
+    result = {
+      :secret_key => job_description[:secret_key]
+    }.merge(@runner.result)
     
     Amalgam::Worker.logger.info("Job Completed, Result: #{result}")
     Amalgam::Worker.logger.info("Signalling compleion of job: #{job_id}")

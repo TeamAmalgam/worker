@@ -30,7 +30,7 @@ class Amalgam::Worker::Job
     def create(job_description, configuration)
       jobs = @jobs || {}
 
-      job_identifier = job_description[:type]
+      job_identifier = job_description[:job_type]
      
       if job_identifier.nil?
         raise "Job description does not specify a job type."
