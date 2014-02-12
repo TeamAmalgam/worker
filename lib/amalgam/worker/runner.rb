@@ -43,7 +43,7 @@ class Amalgam::Worker::Runner
 
       original_working_dir = Dir.getwd
       
-      temp_dir = Dir.mktmpdir(@configuration.tmp_dir)
+      temp_dir = Dir.mktmpdir(nil, @configuration.tmp_dir)
       Dir.chdir(temp_dir)
 
       error_caught = false
