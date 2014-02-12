@@ -34,14 +34,14 @@ describe Amalgam::Worker::Job do
 
   it "creates the correctly registered job" do
     Amalgam::Worker::Job.register_job('asdf', SampleJob) 
-    job = Amalgam::Worker::Job.create({:type => 'asdf'}, nil)
+    job = Amalgam::Worker::Job.create({:job_type => 'asdf'}, nil)
 
     expect(job).to be_an_instance_of(SampleJob)
   end
 
   it "should raise an error when creating an unregistered job" do
     expect {
-      Amalgam::Worker::Job.create({:type => 'asdf'}, nil)
+      Amalgam::Worker::Job.create({:job_type => 'asdf'}, nil)
     }.to raise_error
   end
 end
