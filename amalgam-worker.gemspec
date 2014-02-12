@@ -23,6 +23,9 @@ Gem::Specification.new do |s|
                    'lib/amalgam/worker/uploader.rb',
                    'lib/amalgam/worker/uploader/s3_uploader.rb',
                    'lib/amalgam/worker/uploader/test_uploader.rb',
+                   'lib/amalgam/worker/queue.rb',
+                   'lib/amalgam/worker/queue/sqs_queue.rb',
+                   'lib/amalgam/worker/queue/test_queue.rb',
                    'lib/amalgam/worker/job.rb',
                    'lib/amalgam/worker/job/build_job.rb',
                    'lib/amalgam/worker/job/run_job.rb']
