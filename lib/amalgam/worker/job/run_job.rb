@@ -1,6 +1,7 @@
 require 'benchmark'
 require 'fileutils'
 require 'digest'
+require 'rest_client'
 
 class Amalgam::Worker::Job::RunJob < Amalgam::Worker::Job
     def initialize(job_description, configuration)
@@ -70,9 +71,9 @@ class Amalgam::Worker::Job::RunJob < Amalgam::Worker::Job
         # Unpack the model.
 
         tar_result = `tar -xf #{model_tar_file_path}`
-        if $? != 0
+        if $?.to_i != 0
           return {
-            :return_code => $?,
+            :return_code => $?.to_i,
             :error_message => "Failed to unpack the model.",
             :error_detail => tar_result
           }
@@ -98,10 +99,55 @@ class Amalgam::Worker::Job::RunJob < Amalgam::Worker::Job
           `java -jar "#{jar_file_path}" "#{model_als_path}" > #{stdout_path} 2> #{stderr_path}`
         end
 
-        return_code = $?
+        return_code = $?.to_i
+
+        Dir.chdir(model_directory)
+
+        # If moolloy finished successfully and the solutions for this model have not been populated
+        # we will assume that this run was correct and populate the solutions.
+        if (return_code == 0) && File.exists?(File.join(model_directory, "solutions_not_populated.txt"))
+
+          Amalgam::Worker.logger.info("The solutions were not populated for this model.")
+          Amalgam::Worker.logger.info("Populating the solutions from this run.")
+
+          # Delete the solutions_not_populated.txt file.
+          FileUtils.rm_f(File.join(model_directory, "solutions_not_populated.txt"))
+
+          # Find the solutions this run generated and copy them into the model_directory.
+          test_solution_files = Dir[File.join(run_directory, "alloy_solutions_*.xml")]
+          FileUtils.cp(test_solution_files, model_directory)
+
+          # Package the model and the solutions into a tarball.
+          tar_result = `tar -cjf "#{File.join(model_directory, "populated_model.tar.bz2")}" model.als alloy_solutions_*.xml`
+          if $?.to_i != 0
+            return {
+              :return_code => $?.to_i,
+              :error_message => "Failed to package populated model.",
+              :error_details => tar_result
+            }
+          end
+         
+          # Upload the model to the dashboard. 
+          model_id = @job_description[:model_id]
+
+          RestClient.logger = Amalgam::Worker.logger
+
+          upload_request = RestClient::Request.new(
+            :method => :post,
+            :url => "#{@configuration.server_base_url}/models/#{model_id}/upload",
+            :username => @configuration.username,
+            :password => @configuration.password,
+            :payload => {
+              :file => File.new(File.join(model_directory, "populated_model.tar.bz2"))
+            }
+          )
+
+          upload_request.execute
+        end
+
+        Dir.chdir(run_directory)
 
         # Determine correctness.
-
         correct = (return_code == 0)
         test_solution_files = Dir[File.join(run_directory,
                                             "alloy_solutions_*.xml")]
@@ -151,9 +197,9 @@ class Amalgam::Worker::Job::RunJob < Amalgam::Worker::Job
 
         `hostname > ./hostname`
         tar_result = `tar -cjf "#{tarball_path}" #{File.join(".", "*")}`
-        if $? != 0
+        if $?.to_i != 0
           return {
-            :return_code => $?,
+            :return_code => $?.to_i,
             :error_message => "Failed to package results.",
             :error_detail => tar_result
           }

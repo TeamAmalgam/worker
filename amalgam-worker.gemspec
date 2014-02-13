@@ -34,6 +34,7 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'aws-sdk', '~> 1.33'
   s.add_runtime_dependency 'safe_yaml', '~> 1.0'
   s.add_runtime_dependency 'httparty', '~> 0.12'
+  s.add_runtime_dependency 'rest_client'
 
   s.add_development_dependency 'rake', '~> 10.1'
   s.add_development_dependency 'rspec', '~> 2.14'

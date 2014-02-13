@@ -41,9 +41,9 @@ class Amalgam::Worker::Job::BuildJob < Amalgam::Worker::Job
       repo_url = @configuration.git_repo
       Amalgam::Worker.logger.info("Cloning git repo.")
       clone_results = run_with_ssh_key("git clone #{repo_url} moolloy 2>&1")
-      if $? != 0
+      if $?.to_i != 0
         return {
-          :return_code => $?,
+          :return_code => $?.to_i,
           :error_message => "Failed to clone git repo.",
           :error_details => clone_results
         }
@@ -56,9 +56,9 @@ class Amalgam::Worker::Job::BuildJob < Amalgam::Worker::Job
         commit = @job_description[:commit]
         Amalgam::Worker.logger.info("Checking out commit: #{commit}")
         checkout_results = `git checkout #{commit} 2>&1`
-        if $? != 0
+        if $?.to_i != 0
           return {
-            :return_code => $?,
+            :return_code => $?.to_i,
             :error_message => "Failed to checkout commit.",
             :error_details => checkout_results
           }
@@ -68,18 +68,18 @@ class Amalgam::Worker::Job::BuildJob < Amalgam::Worker::Job
 
         Amalgam::Worker.logger.info("Updating submodules.")
         submodule_results = `git submodule init 2>&1`
-        if $? != 0
+        if $?.to_i != 0
           return {
-            :return_code => $?,
+            :return_code => $?.to_i,
             :error_message => "Failed to submodule init.",
             :error_details => submodule_results
           }
         end
 
         submodule_results = run_with_ssh_key('git submodule update 2>&1')
-        if $? != 0
+        if $?.to_i != 0
           return {
-            :return_code => $?,
+            :return_code => $?.to_i,
             :error_message => "Failed to submodule update.",
             :error_details => submodule_results
           }
@@ -89,9 +89,9 @@ class Amalgam::Worker::Job::BuildJob < Amalgam::Worker::Job
 
         Amalgam::Worker.logger.info("Building...")
         build_results = `ant deps 2>&1 && ant configure 2>&1 && ant dist 2>&1`
-        if $? != 0
+        if $?.to_i != 0
           return {
-            :return_code => $?,
+            :return_code => $?.to_i,
             :error_message => "Failed to build.",
             :error_details => build_results
           }

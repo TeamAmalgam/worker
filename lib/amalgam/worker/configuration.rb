@@ -19,6 +19,9 @@ class Amalgam::Worker::Configuration
     :heartbeat_period, # Time between heartbeats.
     :sleep_interval, # Time to sleep between worker checks.
     :idle_timeout, # Time to spend polling for jobs before checking other state
+    :server_base_url, # Base url for jobs to talk to the server.
+    :username, # Username for jobs to talk to the server.
+    :password, # Password for jobs to talk to the server.
 
     :heartbeater_type, # The type of heartbeater to use.
     :uploader_type, # The type of uploader to use.
@@ -35,6 +38,7 @@ class Amalgam::Worker::Configuration
     :access_key_id,
     :secret_access_key,
     :git_repo,
+    :server_base_url,
     :heartbeater_type,
     :uploader_type,
     :downloader_type,
@@ -53,7 +57,9 @@ class Amalgam::Worker::Configuration
     :sleep_interval   => 15 * SECONDS_PER_SECOND,
     :tmp_dir          => nil,
     :idle_timeout     => 2  * SECONDS_PER_MINUTE,
-    :ssh_key          => nil
+    :ssh_key          => nil,
+    :username         => nil,
+    :password         => nil
   }
 
   # All Non-Mandatory settings must have an entry in the
