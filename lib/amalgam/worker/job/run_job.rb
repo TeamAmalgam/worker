@@ -130,7 +130,7 @@ class Amalgam::Worker::Job::RunJob < Amalgam::Worker::Job
           # Upload the model to the dashboard. 
           model_id = @job_description[:model_id]
 
-          RestClient.logger = Amalgam::Worker.logger
+          RestClient.log = Amalgam::Worker.logger
 
           upload_request = RestClient::Request.new(
             :method => :post,
