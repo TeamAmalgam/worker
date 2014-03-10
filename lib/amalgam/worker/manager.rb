@@ -113,6 +113,7 @@ class Amalgam::Worker::Manager
     job_id = job_description[:job_id]
     Amalgam::Worker.logger.info("Signalling start of job: #{job_id}")
     @configuration.heartbeater.signal_start(job_id)
+    @configuration.heartbeater.heartbeat(job_id)
 
     # Ensure that a previous job termination will not carry-over
     @job_termination_requested = false
@@ -138,6 +139,7 @@ class Amalgam::Worker::Manager
     Amalgam::Worker.logger.info("Job Completed, Result: #{result}")
     Amalgam::Worker.logger.info("Signalling compleion of job: #{job_id}")
     @configuration.heartbeater.signal_completion(job_id, result)
+    @configuration.heartbeater.heartbeat(nil)
   end
 
   def seconds_since_job_start
@@ -145,10 +147,10 @@ class Amalgam::Worker::Manager
   end
 
   def maybe_terminate_job
-    Amalgam::Worker.logger.info("Job has timed-out.")
     if (seconds_since_job_start >=
           @configuration.worker_timeout ||
         @job_termination_requested)
+      Amalgam::Worker.logger.info("Job has timed-out.")
       @runner.terminate
       @job_termination_requested = false
     end
