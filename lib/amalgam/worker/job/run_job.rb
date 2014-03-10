@@ -95,8 +95,13 @@ class Amalgam::Worker::Job::RunJob < Amalgam::Worker::Job
         stdout_path = File.join(run_directory, "stdout.out")
         stderr_path = File.join(run_directory, "stderr.out")
 
+        algorithm_string = nil
+        if @job_description[:algorithm]
+          algorithm_string = "--MooAlgorithm=#{@job_description[:algorithm]}"
+        end
+
         benchmark_result = Benchmark.measure do
-          `java -jar "#{jar_file_path}" "#{model_als_path}" > #{stdout_path} 2> #{stderr_path}`
+          `java -jar "#{jar_file_path}" #{algorithm_string} "#{model_als_path}" > #{stdout_path} 2> #{stderr_path}`
         end
 
         return_code = $?.to_i
