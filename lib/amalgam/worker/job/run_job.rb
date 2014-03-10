@@ -140,7 +140,7 @@ class Amalgam::Worker::Job::RunJob < Amalgam::Worker::Job
           upload_request = RestClient::Request.new(
             :method => :post,
             :url => "#{@configuration.server_base_url}/models/#{model_id}/upload",
-            :username => @configuration.username,
+            :user => @configuration.username,
             :password => @configuration.password,
             :payload => {
               :file => File.new(File.join(model_directory, "populated_model.tar.bz2"))
