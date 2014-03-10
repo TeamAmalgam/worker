@@ -1,0 +1,26 @@
+#!/usr/bin/env ruby
+
+require 'amalgam/worker'
+require 'safe_yaml'
+
+SafeYAML::OPTIONS[:deserialize_symbols] = true
+
+config_file_path = ARGV[0]
+raise "Configuration path must be specified." if config_file_path.nil?
+
+worker = Amalgam::Worker.new(config_file_path)
+worker.run
+
+Signal.trap("USR1") do
+    worker.termination_request
+end
+
+Signal.trap("USR2") do
+    worker.terminate_current_job
+end
+
+Signal.trap("HUP") do
+    worker.update_configuration
+end
+
+worker.join
