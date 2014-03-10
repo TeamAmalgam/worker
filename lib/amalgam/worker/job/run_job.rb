@@ -100,8 +100,10 @@ class Amalgam::Worker::Job::RunJob < Amalgam::Worker::Job
           algorithm_string = "--MooAlgorithm=#{@job_description[:algorithm]}"
         end
 
+        memory_string = "-Xss4m -Xms512m -Xmx8192m"
+
         benchmark_result = Benchmark.measure do
-          `java -jar "#{jar_file_path}" #{algorithm_string} "#{model_als_path}" > #{stdout_path} 2> #{stderr_path}`
+          `java #{memory_string} -jar "#{jar_file_path}" #{algorithm_string} "#{model_als_path}" > #{stdout_path} 2> #{stderr_path}`
         end
 
         return_code = $?.to_i
