@@ -15,6 +15,7 @@ class Amalgam::Worker::Runner
   end
 
   def run
+    @running = true
     @thread = Thread.new {
       thread_main
     }
@@ -39,8 +40,6 @@ class Amalgam::Worker::Runner
 
   def thread_main
     begin
-      @running = true
-
       original_working_dir = Dir.getwd
       
       temp_dir = Dir.mktmpdir(nil, @configuration.tmp_dir)
